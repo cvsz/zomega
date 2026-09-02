@@ -1,17 +1,78 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required repository files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            ABOUT.md
+            CONTRIBUTING.md
+            SECURITY.md
+            CODE_OF_CONDUCT.md
+            CHANGELOG.md
+            ROADMAP.md
+            IMPLEMENTATION-CHECKLIST.md
+            .github/CODEOWNERS
+            .github/PULL_REQUEST_TEMPLATE.md
+            .github/ISSUE_TEMPLATE/config.yml
+            .github/dependabot.yml
+            .editorconfig
+            .gitattributes
+            .env.example
+            Dockerfile
+            Makefile
+          )
+          for path in "${required[@]}"; do
+            test -f "$path" || { echo "Missing required file: $path"; exit 1; }
+          done
+
+      - name: Check for common secret file names
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.env$|id_rsa$|id_ed25519$|.*\.pem$|.*\.key$|credentials\.json$|service-account\.json$)' | grep -v '^\.env\.example$'; then
+            echo 'Potential secret-bearing file is tracked.'
+            exit 1
+          fi
+
+      - name: Validate YAML syntax
+        shell: bash
+        run: |
+          ruby -e 'require "yaml"; Dir.glob(".github/**/*.{yml,yaml}").each { |f| YAML.load_file(f); puts "ok #{f}" }'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-      - run: pip install -r requirements.txt
-      - run: python -m compileall -q omega
-      - run: python -m unittest discover -s tests -v
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Compile Python sources
+        run: python -m compileall -q omega tests
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
       - name: Validate 100 Skills and 12 Agents
         env:
           OMEGA_PUBLIC_URL: https://example.invalid

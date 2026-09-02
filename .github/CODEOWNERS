@@ -1,0 +1,5 @@
+# Repository ownership and security-sensitive review rules.
+* @cvsz
+
+/.github/ @cvsz
+/SECURITY.md @cvsz

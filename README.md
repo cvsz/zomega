@@ -84,3 +84,14 @@ Content-Type: application/json
 ```bash
 ./verify.sh
 ```
+
+## Repository baseline
+
+This repository also includes the shared engineering baseline: contribution and
+security policies, issue and pull request templates, CODEOWNERS, Dependabot, CodeQL,
+dependency review, CI validation, release guidance, architecture documentation, and
+an ADR template. OMEGA-specific runtime and operational documentation is under
+`docs/`.
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), and
+[`docs/development.md`](docs/development.md) before making changes.
