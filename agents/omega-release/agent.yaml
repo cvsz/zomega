@@ -1,0 +1,13 @@
+id: omega-release
+role: "Release Engineer"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - github-actions-ci
+  - cd-pipeline
+  - release-engineering
+  - final-release-gate
+  - rollback-script

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omega-api
+  namespace: omega
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: omega-api}}
+  template:
+    metadata: {labels: {app: omega-api}}
+    spec:
+      serviceAccountName: omega
+      automountServiceAccountToken: false
+      containers:
+        - name: api
+          image: ghcr.io/example/omega:2.0.0
+          command: ["python","-m","omega","serve"]
+          ports: [{name: http, containerPort: 8000}]
+          envFrom: [{secretRef: {name: omega-runtime}}]
+          readinessProbe: {httpGet: {path: /health/ready, port: http}}
+          livenessProbe: {httpGet: {path: /health/live, port: http}}
+          resources:
+            requests: {cpu: "200m", memory: "256Mi"}
+            limits: {cpu: "2", memory: "2Gi"}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omega-worker
+  namespace: omega
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: omega-worker}}
+  template:
+    metadata: {labels: {app: omega-worker}}
+    spec:
+      serviceAccountName: omega
+      automountServiceAccountToken: false
+      containers:
+        - name: worker
+          image: ghcr.io/example/omega:2.0.0
+          command: ["arq","omega.jobs.WorkerSettings"]
+          envFrom: [{secretRef: {name: omega-runtime}}]
+          resources:
+            requests: {cpu: "200m", memory: "256Mi"}
+            limits: {cpu: "2", memory: "2Gi"}

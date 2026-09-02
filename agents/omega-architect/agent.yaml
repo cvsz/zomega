@@ -1,0 +1,13 @@
+id: omega-architect
+role: "Principal Architect"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - mission-interpreter
+  - repository-intelligence
+  - architecture-generator
+  - gap-analysis
+  - implementation-roadmap

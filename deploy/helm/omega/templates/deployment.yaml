@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: omega-api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: omega-api}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-omega
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python","-m","omega","serve"]
+          envFrom:
+            - secretRef: {name: {{ .Values.runtimeSecretName }}}
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+          livenessProbe:
+            httpGet: {path: /health/live, port: http}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+spec:
+  replicas: {{ .Values.workerReplicaCount }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: omega-worker}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: omega-worker}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-omega
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["arq","omega.jobs.WorkerSettings"]
+          envFrom:
+            - secretRef: {name: {{ .Values.runtimeSecretName }}}
+          resources: {{- toYaml .Values.resources | nindent 12 }}

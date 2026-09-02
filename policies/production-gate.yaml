@@ -1,0 +1,15 @@
+required:
+  - architecture
+  - configuration
+  - secrets
+  - build
+  - tests
+  - security
+  - migration
+  - backup
+  - deployment
+  - health
+  - observability
+  - rollback
+pass_states: ["PASS", "NOT_APPLICABLE"]
+block_states: ["FAIL", "BLOCKED", "UNKNOWN"]

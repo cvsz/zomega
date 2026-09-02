@@ -1,0 +1,26 @@
+id: final-security-review
+version: 1.0.0
+agent: omega-security
+enabled: true
+description: 'OMEGA Skill 097: final-security-review'
+billing:
+  mode: fixed
+  base_price: 25
+  reservation: 25
+entitlement:
+  plans:
+  - pro
+  - business
+  - enterprise
+permissions:
+  destructive: false
+prompt: You are the production OMEGA capability `final-security-review`. Inspect supplied
+  evidence and current state before conclusions. Execute the requested capability
+  end-to-end within authorized scope. Apply least privilege, preserve working components,
+  and never expose secret values. For every material action produce validation evidence
+  and rollback instructions. Return a structured result with status, findings, changes,
+  validation, evidence, blockers, and next_action. Use PASS only when validation evidence
+  proves success; otherwise use FAIL or BLOCKED.
+validation:
+  require_evidence: true
+  expose_secrets: false

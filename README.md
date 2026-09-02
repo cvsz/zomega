@@ -1,78 +1,86 @@
-# ztemplate
+# OMEGA Production 2.0
 
-A production-ready, reusable GitHub repository template for starting new projects with consistent engineering, security, documentation, automation, and release practices.
+OMEGA is a paid-before-use, multi-tenant Agents + Skills API.
 
-## Included
+This edition has no development execution provider and no local in-memory billing path.
+Billable execution uses OpenAI through the official Python SDK; payments use Stripe Checkout
+and signed Stripe webhooks; durable state uses PostgreSQL; rate limiting and background jobs
+use Redis + ARQ.
 
-- Issue and pull request templates
-- CODEOWNERS and repository contribution guidance
-- Security policy and support policy
-- CI workflow baseline
-- CodeQL security scanning
-- Dependency Review for pull requests
-- Dependabot configuration
-- Release workflow and release notes configuration
-- Conventional commit / PR guidance
-- EditorConfig, Git attributes, and Git ignore baseline
-- Community health files
-- Documentation structure
-- Changelog and roadmap templates
-- Implementation checklist
-- Architecture Decision Record (ADR) template
-- Environment example
-- Docker baseline
-- Makefile task entrypoints
-
-## Start from this template
-
-1. Use this repository as a GitHub template repository.
-2. Create a new repository from the template.
-3. Replace placeholder project metadata.
-4. Review and customize `.github/CODEOWNERS`, `SECURITY.md`, CI matrices, and release settings.
-5. Add language/framework-specific workflows only when the project needs them.
-
-## Repository structure
+## Invariant
 
 ```text
-.github/
-  ISSUE_TEMPLATE/
-  workflows/
-  CODEOWNERS
-  CONTRIBUTING.md
-  PULL_REQUEST_TEMPLATE.md
-  dependabot.yml
-  release.yml
-  SUPPORT.md
-docs/
-  adr/
-  architecture.md
-  development.md
-  release.md
-.env.example
-.editorconfig
-.gitattributes
-.gitignore
-CHANGELOG.md
-CODE_OF_CONDUCT.md
-Dockerfile
-IMPLEMENTATION-CHECKLIST.md
-LICENSE
-Makefile
-README.md
-ROADMAP.md
-SECURITY.md
+API key → tenant → entitlement → rate limit → price → transactional credit reservation
+→ durable queue → worker → OpenAI Responses API → meter → settle/refund → evidence
 ```
 
-## Principles
+A run cannot be queued unless the wallet reservation succeeds.
 
-- Secure by default
-- Least privilege for GitHub Actions
-- Reproducible automation
-- Small, reviewable pull requests
-- Documentation as part of delivery
-- No weakening of security gates to make CI green
-- Explicit release and rollback practices
+## Required services
 
-## License
+- PostgreSQL
+- Redis
+- Stripe account + secret/webhook signing secret
+- OpenAI API key
+- HTTPS public URL
 
-MIT. See `LICENSE`.
+## Boot
+
+```bash
+cp .env.example .env
+# fill required values
+docker compose up --build -d
+docker compose exec api omega create-tenant --name "First Tenant" --plan pro
+```
+
+The tenant creation command prints the API key exactly once.
+
+## Buy credits
+
+Authenticated clients call:
+
+```http
+POST /v1/checkout
+Authorization: Bearer omega_...
+Content-Type: application/json
+
+{"credits":1000}
+```
+
+The API returns a Stripe-hosted checkout URL. Credits are granted only from a verified
+`checkout.session.completed` or `checkout.session.async_payment_succeeded` event whose
+`payment_status` is `paid`.
+
+Configure Stripe to send events to:
+
+`POST /v1/payment-webhooks/stripe`
+
+## Run a Skill
+
+```http
+POST /v1/skills/repository-intelligence/runs
+Authorization: Bearer omega_...
+Idempotency-Key: customer-operation-123
+Content-Type: application/json
+
+{"input":{"repository":"owner/project"}}
+```
+
+Returns HTTP 202 and a `run_id`. Poll `GET /v1/runs/{run_id}`.
+
+## Run an Agent
+
+```http
+POST /v1/agents/omega-security/runs
+Authorization: Bearer omega_...
+Idempotency-Key: security-run-123
+Content-Type: application/json
+
+{"input":{"objective":"Audit the supplied repository"},"max_spend_credits":500}
+```
+
+## Production validation
+
+```bash
+./verify.sh
+```

@@ -1,0 +1,14 @@
+name: Security
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  secret-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block committed dotenv/private key files
+        run: |
+          ! git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$|credentials\.json$'

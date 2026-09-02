@@ -1,0 +1,16 @@
+id: omega-qa
+role: "QA Engineer"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - test-strategy
+  - unit-test-generator
+  - integration-test-generator
+  - end-to-end-tests
+  - security-tests
+  - performance-baseline
+  - load-testing
+  - production-readiness-checker

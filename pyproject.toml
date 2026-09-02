@@ -1,0 +1,26 @@
+[project]
+name = "omega-production"
+version = "2.0.0"
+description = "Production paid-before-use multi-agent skills platform"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "pydantic==2.11.7",
+  "pydantic-settings==2.10.1",
+  "PyYAML==6.0.2",
+  "prometheus-client==0.22.1",
+  "SQLAlchemy==2.0.43",
+  "psycopg[binary,pool]==3.2.9",
+  "alembic==1.16.5",
+  "redis==6.4.0",
+  "arq==0.26.3",
+  "stripe==12.5.0",
+  "openai==1.107.0",
+  "argon2-cffi==25.1.0",
+  "httpx==0.28.1",
+  "python-json-logger==3.3.0"
+]
+
+[project.scripts]
+omega = "omega.cli:main"

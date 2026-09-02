@@ -1,0 +1,7 @@
+default: deny
+requires:
+  - explicit_authorization
+  - backup
+  - scope_validation
+  - rollback_plan
+  - evidence

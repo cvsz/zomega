@@ -1,26 +1,16 @@
-SHELL := /bin/sh
+.PHONY: install init serve verify test backup
 
-.PHONY: help setup format lint test build security ci
+PYTHON ?= python3
 
-help:
-	@printf '%s\n' 'Targets: setup format lint test build security ci'
-
-setup:
-	@echo 'Replace with project bootstrap command.'
-
-format:
-	@echo 'Replace with project formatter command.'
-
-lint:
-	@echo 'Replace with project lint command.'
-
+install:
+	./install.sh
+init:
+	alembic upgrade head
+serve:
+	$(PYTHON) -m omega serve
+verify:
+	./verify.sh
 test:
-	@echo 'Replace with project test command.'
-
-build:
-	@echo 'Replace with project build command.'
-
-security:
-	@echo 'Use repository security workflows and add stack-specific scanners.'
-
-ci: lint test build security
+	$(PYTHON) -m unittest discover -s tests -v
+backup:
+	./backup.sh

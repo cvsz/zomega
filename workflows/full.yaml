@@ -1,0 +1,22 @@
+id: omega-full
+stages:
+  - id: discover
+    agent: omega-architect
+    skills: [mission-interpreter, repository-intelligence, gap-analysis]
+  - id: plan
+    agent: omega-architect
+    skills: [architecture-generator, implementation-roadmap]
+  - id: secure
+    agent: omega-security
+    skills: [secret-inventory, secret-leak-auditor, threat-model, security-baseline]
+  - id: build
+    parallel:
+      - agent: omega-backend
+      - agent: omega-frontend
+      - agent: omega-devops
+  - id: verify
+    agent: omega-qa
+    skills: [test-strategy, security-tests, production-readiness-checker, evidence-generator]
+  - id: release
+    agent: omega-release
+    skills: [final-release-gate]

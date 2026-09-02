@@ -1,0 +1,13 @@
+id: omega-operator
+role: "Operations Engineer"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - operator-runbook
+  - incident-response
+  - self-healing-system
+  - upgrade-compatibility-analyzer
+  - documentation-generator

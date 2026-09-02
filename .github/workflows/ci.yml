@@ -1,54 +1,31 @@
 name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-
+on: [push, pull_request]
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  repository-baseline:
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate required template files
-        shell: bash
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q omega
+      - run: python -m unittest discover -s tests -v
+      - name: Validate 100 Skills and 12 Agents
+        env:
+          OMEGA_PUBLIC_URL: https://example.invalid
+          DATABASE_URL: postgresql+psycopg://u:p@localhost/db
+          REDIS_URL: redis://localhost:6379/0
+          OMEGA_API_KEY_PEPPER: ci-pepper
+          OMEGA_ADMIN_TOKEN: ci-admin
+          OPENAI_API_KEY: ci-openai
+          STRIPE_SECRET_KEY: sk_test_ci
+          STRIPE_WEBHOOK_SECRET: whsec_ci
         run: |
-          set -euo pipefail
-          required=(
-            README.md
-            ABOUT.md
-            CONTRIBUTING.md
-            SECURITY.md
-            CODE_OF_CONDUCT.md
-            CHANGELOG.md
-            ROADMAP.md
-            IMPLEMENTATION-CHECKLIST.md
-            .github/PULL_REQUEST_TEMPLATE.md
-            .github/dependabot.yml
-          )
-          for path in "${required[@]}"; do
-            test -f "$path" || { echo "Missing required file: $path"; exit 1; }
-          done
-
-      - name: Check for common secret file names
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git ls-files | grep -E '(^|/)(\.env|id_rsa|id_ed25519|.*\.pem|.*\.key)$' | grep -v '^\.env\.example$'; then
-            echo 'Potential secret-bearing file is tracked.'
-            exit 1
-          fi
-
-      - name: Validate YAML syntax
-        shell: bash
-        run: |
-          ruby -e 'require "yaml"; Dir.glob(".github/**/*.{yml,yaml}").each { |f| YAML.load_file(f); puts "ok #{f}" }'
+          python - <<'PY'
+          from omega.catalog import load_skills, load_agents
+          assert len(load_skills()) == 100
+          assert len(load_agents()) == 12
+          print("catalog PASS")
+          PY

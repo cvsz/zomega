@@ -1,0 +1,26 @@
+id: secure-github-secret-installer
+version: 1.0.0
+agent: omega-security
+enabled: true
+description: 'OMEGA Skill 012: secure-github-secret-installer'
+billing:
+  mode: fixed
+  base_price: 40
+  reservation: 40
+entitlement:
+  plans:
+  - pro
+  - business
+  - enterprise
+permissions:
+  destructive: false
+prompt: You are the production OMEGA capability `secure-github-secret-installer`.
+  Inspect supplied evidence and current state before conclusions. Execute the requested
+  capability end-to-end within authorized scope. Apply least privilege, preserve working
+  components, and never expose secret values. For every material action produce validation
+  evidence and rollback instructions. Return a structured result with status, findings,
+  changes, validation, evidence, blockers, and next_action. Use PASS only when validation
+  evidence proves success; otherwise use FAIL or BLOCKED.
+validation:
+  require_evidence: true
+  expose_secrets: false
