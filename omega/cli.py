@@ -1,4 +1,5 @@
 import argparse
+import getpass
 import json
 import uvicorn
 from sqlalchemy import text, select
@@ -8,7 +9,7 @@ from .db import engine, session_scope
 from .admin import create_tenant
 from .billing import reconcile_wallet, refund_run, settle_run
 from .models import Run, Reservation
-from .security import utcnow
+from .security import generate_api_key, utcnow
 
 def _reconcile_run(run_id: str, action: str, charge: int | None):
     with session_scope() as db:
@@ -57,6 +58,21 @@ def _reconcile_run(run_id: str, action: str, charge: int | None):
         "status": "PARTIAL",
     }))
 
+def _read_new_api_key() -> str:
+    generated = generate_api_key()
+    prompt = (
+        "Enter a pre-generated OMEGA API key, or press Enter to use a securely generated key "
+        "that will be shown once by the terminal prompt: "
+    )
+    supplied = getpass.getpass(prompt)
+    if supplied:
+        return supplied
+    # getpass writes to the controlling terminal, not stdout/stderr logs.
+    getpass.getpass(
+        f"Generated API key (copy it now; press Enter after saving it): {generated}"
+    )
+    return generated
+
 def main():
     p = argparse.ArgumentParser(prog="omega")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -82,10 +98,10 @@ def main():
     if args.cmd == "serve":
         uvicorn.run("omega.api:app", host=settings.omega_host, port=settings.omega_port)
     elif args.cmd == "create-tenant":
-        tenant_id, api_key = create_tenant(args.name, args.plan)
+        raw_api_key = _read_new_api_key()
+        tenant_id = create_tenant(args.name, raw_api_key, args.plan)
         print(f"tenant_id={tenant_id}")
-        print(f"api_key={api_key}")
-        print("Store this API key securely; it will not be shown again.")
+        print("tenant_created=PASS")
     elif args.cmd == "db-check":
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
