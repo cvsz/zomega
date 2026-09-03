@@ -2,7 +2,7 @@ import hashlib
 import json
 from datetime import timedelta
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
 from .config import settings
 from .db import session_scope
 from .models import (
@@ -62,7 +62,12 @@ async def create_agent_run(
 
 async def _create_run(tenant, agent_id, skill_id, payload, reservation, idempotency_key):
     canonical = json.dumps(
-        {"agent_id": agent_id, "skill_id": skill_id, "payload": payload},
+        {
+            "agent_id": agent_id,
+            "skill_id": skill_id,
+            "payload": payload,
+            "reservation": reservation,
+        },
         sort_keys=True,
         separators=(",", ":"),
     )
@@ -70,6 +75,11 @@ async def _create_run(tenant, agent_id, skill_id, payload, reservation, idempote
 
     with session_scope() as db:
         if idempotency_key:
+            # Serialize same tenant+idempotency key across concurrent API nodes.
+            db.execute(
+                text("SELECT pg_advisory_xact_lock(hashtext(:lock_key))"),
+                {"lock_key": f"{tenant['id']}:{idempotency_key}"},
+            )
             existing = db.execute(
                 select(IdempotencyRecord).where(
                     IdempotencyRecord.tenant_id == tenant["id"],
