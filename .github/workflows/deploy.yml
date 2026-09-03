@@ -1,12 +1,51 @@
-name: Deploy
+name: Deploy Production
+
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Immutable image tag (commit SHA or release tag)"
+        required: true
+        type: string
+
 permissions:
   contents: read
+  packages: read
+
+concurrency:
+  group: omega-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     environment: production
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: echo "Connect deployment target here; secrets must come from GitHub Environment Secrets."
+      - uses: actions/checkout@v7
+      - uses: azure/setup-kubectl@v4
+      - uses: azure/setup-helm@v4
+      - name: Configure kubeconfig
+        shell: bash
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KUBECONFIG_B64"
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl cluster-info
+      - name: Deploy atomically
+        shell: bash
+        run: |
+          set -euo pipefail
+          helm upgrade --install omega deploy/helm/omega             --namespace omega             --create-namespace             --set image.repository=ghcr.io/${{ github.repository }}             --set image.tag=${{ inputs.image_tag }}             --atomic             --wait             --timeout 10m
+          kubectl -n omega rollout status deployment/omega-api --timeout=5m
+          kubectl -n omega rollout status deployment/omega-worker --timeout=5m
+      - name: External readiness verification
+        env:
+          OMEGA_HEALTH_URL: ${{ vars.OMEGA_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$OMEGA_HEALTH_URL"
+          curl --fail --show-error --silent --retry 8 --retry-all-errors             "$OMEGA_HEALTH_URL/health/ready"
