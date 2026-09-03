@@ -41,3 +41,6 @@ versioning follows the policy documented in `docs/release.md`.
 
 - Internal skill prompts, validation rules, and permissions are no longer exposed by catalog routes.
 - API keys now enforce billing, run, agent, and skill scopes per route.
+- API-key lookup digests now use keyed BLAKE2b-512 instead of the legacy SHA-256 construction.
+- `create-tenant` and `rotate-api-key` accept secrets only through hidden terminal input and never print API keys.
+- Migration `0003` deactivates legacy API-key digests so operators must rotate them explicitly.
