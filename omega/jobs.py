@@ -1,4 +1,3 @@
-from datetime import timedelta
 from arq import cron
 from sqlalchemy import select
 from .db import session_scope
@@ -91,6 +90,17 @@ async def _execute_one(run_id: str, sid: str, sequence_no: int, skill: dict, pay
         "replayed_checkpoint": False,
     }
 
+def _finalize_cancelled(run_id: str, total_charge: int, outputs: list[dict]):
+    settle_run(run_id, total_charge)
+    with session_scope() as db:
+        run = db.get(Run, run_id)
+        run.status = "CANCELLED"
+        run.cancel_requested = True
+        run.charged_credits = total_charge
+        run.result_json = {"steps": outputs, "reason": "cancel_requested"}
+        run.finished_at = utcnow()
+    record(run_id, "run.cancelled", {"charged_credits": total_charge})
+
 async def execute_run(ctx, run_id: str):
     with session_scope() as db:
         run = db.execute(
@@ -99,7 +109,6 @@ async def execute_run(ctx, run_id: str):
         if run.status not in {"QUEUED", "RUNNING"}:
             return
         if run.status == "RUNNING":
-            # A retry seeing RUNNING cannot safely assume the provider call did not happen.
             active = db.execute(
                 select(SkillExecution).where(
                     SkillExecution.run_id == run_id,
@@ -131,16 +140,8 @@ async def execute_run(ctx, run_id: str):
         sequence = [skill_id] if skill_id else list(load_agents()[agent_id].get("default_workflow", []))
 
         for sequence_no, sid in enumerate(sequence, start=1):
-            snapshot = _run_snapshot(run_id)
-            if snapshot["cancel_requested"]:
-                settle_run(run_id, total_charge)
-                with session_scope() as db:
-                    run = db.get(Run, run_id)
-                    run.status = "CANCELLED"
-                    run.charged_credits = total_charge
-                    run.result_json = {"steps": outputs, "reason": "cancel_requested"}
-                    run.finished_at = utcnow()
-                record(run_id, "run.cancelled", {"charged_credits": total_charge})
+            if _run_snapshot(run_id)["cancel_requested"]:
+                _finalize_cancelled(run_id, total_charge, outputs)
                 return
 
             skill = skills[sid]
@@ -183,6 +184,10 @@ async def execute_run(ctx, run_id: str):
                 "replayed_checkpoint": step["replayed_checkpoint"],
             })
 
+        if _run_snapshot(run_id)["cancel_requested"]:
+            _finalize_cancelled(run_id, total_charge, outputs)
+            return
+
         settle_run(run_id, total_charge)
         with session_scope() as db:
             run = db.get(Run, run_id)
@@ -200,7 +205,6 @@ async def execute_run(ctx, run_id: str):
             run.status = "BLOCKED"
             run.error_code = "AMBIGUOUS_PROVIDER_STATE"
         record(run_id, "run.blocked", {"reason": str(exc)[:300]})
-        # Reservation deliberately remains open for reconciliation; do not double execute or auto-refund.
         return
     except Exception as exc:
         refund_run(run_id, str(exc)[:120])
@@ -246,11 +250,7 @@ async def wallet_reconciler(ctx):
     for tenant_id in tenant_ids:
         result = reconcile_wallet(tenant_id)
         if not result["ok"]:
-            record_system_reconciliation(tenant_id, result)
-
-def record_system_reconciliation(tenant_id: str, result: dict):
-    # No run exists for system reconciliation. Surface through worker logs without mutating money.
-    print({"event": "wallet.reconciliation_failed", "tenant_id": tenant_id, "result": result})
+            print({"event": "wallet.reconciliation_failed", "tenant_id": tenant_id, "result": result})
 
 async def startup(ctx):
     return
