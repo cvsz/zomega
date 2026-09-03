@@ -1,6 +1,6 @@
 [project]
 name = "omega-production"
-version = "2.0.0"
+version = "2.1.0"
 description = "Production paid-before-use multi-agent skills platform"
 requires-python = ">=3.12"
 dependencies = [
