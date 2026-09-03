@@ -1,4 +1,5 @@
-import hashlib, hmac, secrets
+import hashlib
+import secrets
 from datetime import datetime, timezone
 from .config import settings
 
@@ -6,10 +7,11 @@ def generate_api_key() -> str:
     return "omega_" + secrets.token_urlsafe(36)
 
 def digest_api_key(raw: str) -> str:
-    return hmac.new(
-        settings.omega_api_key_pepper.encode(),
+    """Return a keyed, non-reversible API-key digest for database lookup."""
+    return hashlib.blake2b(
         raw.encode(),
-        hashlib.sha256,
+        key=settings.omega_api_key_pepper.encode(),
+        digest_size=64,
     ).hexdigest()
 
 def request_hash(payload: bytes) -> str:
