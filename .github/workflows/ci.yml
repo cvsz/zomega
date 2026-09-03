@@ -12,81 +12,111 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHON_VERSION: "3.12"
+
 jobs:
-  validate:
+  unit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Validate required repository files
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Validate repository contract
         shell: bash
         run: |
           set -euo pipefail
           required=(
-            README.md
-            ABOUT.md
-            CONTRIBUTING.md
-            SECURITY.md
-            CODE_OF_CONDUCT.md
-            CHANGELOG.md
-            ROADMAP.md
-            IMPLEMENTATION-CHECKLIST.md
-            .github/CODEOWNERS
-            .github/PULL_REQUEST_TEMPLATE.md
-            .github/ISSUE_TEMPLATE/config.yml
-            .github/dependabot.yml
-            .editorconfig
-            .gitattributes
-            .env.example
-            Dockerfile
-            Makefile
+            README.md ABOUT.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md
+            CHANGELOG.md ROADMAP.md IMPLEMENTATION-CHECKLIST.md
+            .github/CODEOWNERS .github/PULL_REQUEST_TEMPLATE.md
+            .github/ISSUE_TEMPLATE/config.yml .github/dependabot.yml
+            .editorconfig .gitattributes .env.example Dockerfile Makefile
+            migrations/versions/0001_initial.py
+            migrations/versions/0002_transactional_reliability.py
           )
           for path in "${required[@]}"; do
             test -f "$path" || { echo "Missing required file: $path"; exit 1; }
           done
-
-      - name: Check for common secret file names
+      - name: Reject tracked secret-bearing files
         shell: bash
         run: |
           set -euo pipefail
           if git ls-files | grep -E '(^|/)(\.env$|id_rsa$|id_ed25519$|.*\.pem$|.*\.key$|credentials\.json$|service-account\.json$)' | grep -v '^\.env\.example$'; then
-            echo 'Potential secret-bearing file is tracked.'
+            echo "Potential secret-bearing file is tracked."
             exit 1
           fi
-
-      - name: Validate YAML syntax
-        shell: bash
-        run: |
-          ruby -e 'require "yaml"; Dir.glob(".github/**/*.{yml,yaml}").each { |f| YAML.load_file(f); puts "ok #{f}" }'
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with: {python-version: "3.12"}
-
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt
-
-      - name: Compile Python sources
-        run: python -m compileall -q omega tests
-
-      - name: Run unit tests
+      - name: Compile Python
+        run: python -m compileall -q omega tests migrations
+      - name: Unit tests
         run: python -m unittest discover -s tests -v
-
-      - name: Validate 100 Skills and 12 Agents
-        env:
-          OMEGA_PUBLIC_URL: https://example.invalid
-          DATABASE_URL: postgresql+psycopg://u:p@localhost/db
-          REDIS_URL: redis://localhost:6379/0
-          OMEGA_API_KEY_PEPPER: ci-pepper
-          OMEGA_ADMIN_TOKEN: ci-admin
-          OPENAI_API_KEY: ci-openai
-          STRIPE_SECRET_KEY: sk_test_ci
-          STRIPE_WEBHOOK_SECRET: whsec_ci
+      - name: Validate catalog contract
         run: |
           python - <<'PY'
-          from omega.catalog import load_skills, load_agents
+          from omega.catalog import load_skills, load_agents, public_catalog
           assert len(load_skills()) == 100
           assert len(load_agents()) == 12
-          print("catalog PASS")
+          assert all("prompt" not in s for s in public_catalog()["skills"])
+          print("catalog=PASS skills=100 agents=12")
           PY
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: omega
+          POSTGRES_USER: omega
+          POSTGRES_PASSWORD: omega
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omega -d omega"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      OMEGA_INTEGRATION: "1"
+      OMEGA_ENV: ci
+      OMEGA_PUBLIC_URL: https://example.invalid
+      DATABASE_URL: postgresql+psycopg://omega:omega@localhost:5432/omega
+      REDIS_URL: redis://localhost:6379/0
+      OMEGA_API_KEY_PEPPER: ci-pepper-ci-pepper-ci-pepper-ci-pepper
+      OMEGA_ADMIN_TOKEN: ci-admin-ci-admin-ci-admin-ci-admin
+      OPENAI_API_KEY: ci-openai-not-used
+      STRIPE_SECRET_KEY: sk_test_ci_not_used
+      STRIPE_WEBHOOK_SECRET: whsec_ci_not_used
+      STRIPE_PRICE_CREDITS_1000: price_ci_1000
+      STRIPE_PRICE_CREDITS_5000: price_ci_5000
+      STRIPE_PRICE_CREDITS_20000: price_ci_20000
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Upgrade database from empty
+        run: alembic upgrade head
+      - name: Billing and queue integration tests
+        run: python -m unittest tests.test_integration_billing -v
+      - name: Migration round-trip
+        run: |
+          alembic downgrade base
+          alembic upgrade head
+      - name: Verify schema head
+        run: test "$(alembic current | awk '{print $1}')" = "0002"
