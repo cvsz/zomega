@@ -1,8 +1,7 @@
-from datetime import timedelta
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import HTTPException
 from .db import session_scope
-from .models import Wallet, WalletLedger, Reservation, Run
+from .models import Wallet, WalletLedger, Reservation, PaymentEvent
 from .security import utcnow
 
 def get_wallet(tenant_id: str) -> dict:
@@ -16,48 +15,54 @@ def get_wallet(tenant_id: str) -> dict:
             "reserved_credits": wallet.reserved_credits,
         }
 
-def credit_wallet(tenant_id: str, credits: int, reference_type: str, reference_id: str, metadata: dict | None = None):
-    if credits <= 0:
-        raise ValueError("Credit amount must be positive")
+def process_verified_payment(
+    *,
+    provider: str,
+    provider_event_id: str,
+    event_type: str,
+    tenant_id: str | None,
+    credits: int,
+    payload_hash: str,
+    status: str,
+) -> dict:
+    """Record the provider event and credit the wallet in one DB transaction."""
     with session_scope() as db:
-        wallet = db.execute(
-            select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
-        ).scalar_one()
-        wallet.available_credits += credits
-        wallet.version += 1
-        db.add(WalletLedger(
-            tenant_id=tenant_id, kind="credit", amount=credits,
-            reference_type=reference_type, reference_id=reference_id,
-            metadata_json=metadata or {},
-        ))
+        existing = db.execute(
+            select(PaymentEvent).where(PaymentEvent.provider_event_id == provider_event_id)
+        ).scalar_one_or_none()
+        if existing:
+            return {"received": True, "duplicate": True, "status": existing.status}
 
-def reserve_run(tenant_id: str, run_id: str, amount: int) -> str:
-    if amount <= 0:
-        raise ValueError("Reservation amount must be positive")
-    with session_scope() as db:
-        wallet = db.execute(
-            select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
-        ).scalar_one()
-        if wallet.available_credits < amount:
-            raise HTTPException(
-                402,
-                detail={"code": "INSUFFICIENT_CREDITS", "required": amount, "available": wallet.available_credits},
-            )
-        wallet.available_credits -= amount
-        wallet.reserved_credits += amount
-        wallet.version += 1
-        r = Reservation(
-            tenant_id=tenant_id, run_id=run_id, amount=amount,
-            status="reserved", expires_at=utcnow() + timedelta(hours=2),
+        event = PaymentEvent(
+            provider=provider,
+            provider_event_id=provider_event_id,
+            event_type=event_type,
+            tenant_id=tenant_id,
+            credits=credits,
+            payload_hash=payload_hash,
+            status=status,
         )
-        db.add(r)
-        db.flush()
-        db.add(WalletLedger(
-            tenant_id=tenant_id, kind="reserve", amount=-amount,
-            reference_type="reservation", reference_id=r.id,
-            metadata_json={"run_id": run_id},
-        ))
-        return r.id
+        db.add(event)
+
+        if status == "verified":
+            if not tenant_id or credits <= 0:
+                raise ValueError("verified payment requires tenant_id and positive credits")
+            wallet = db.execute(
+                select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
+            ).scalar_one_or_none()
+            if not wallet:
+                raise HTTPException(404, "Wallet not found")
+            wallet.available_credits += credits
+            wallet.version += 1
+            db.add(WalletLedger(
+                tenant_id=tenant_id,
+                kind="credit",
+                amount=credits,
+                reference_type="payment_event",
+                reference_id=provider_event_id,
+                metadata_json={"provider": provider, "event_type": event_type},
+            ))
+        return {"received": True, "duplicate": False, "status": status}
 
 def settle_run(run_id: str, actual_charge: int):
     with session_scope() as db:
@@ -79,15 +84,22 @@ def settle_run(run_id: str, actual_charge: int):
         reservation.status = "settled"
         reservation.settled_amount = actual_charge
 
-        db.add(WalletLedger(
-            tenant_id=reservation.tenant_id, kind="charge", amount=-actual_charge,
-            reference_type="run", reference_id=run_id,
-            metadata_json={},
-        ))
+        if actual_charge:
+            db.add(WalletLedger(
+                tenant_id=reservation.tenant_id,
+                kind="charge",
+                amount=-actual_charge,
+                reference_type="run",
+                reference_id=run_id,
+                metadata_json={},
+            ))
         if refund:
             db.add(WalletLedger(
-                tenant_id=reservation.tenant_id, kind="refund", amount=refund,
-                reference_type="reservation", reference_id=reservation.id,
+                tenant_id=reservation.tenant_id,
+                kind="refund",
+                amount=refund,
+                reference_type="reservation",
+                reference_id=reservation.id,
                 metadata_json={"reason": "unused_reservation"},
             ))
 
@@ -106,7 +118,45 @@ def refund_run(run_id: str, reason: str):
         wallet.version += 1
         reservation.status = "refunded"
         db.add(WalletLedger(
-            tenant_id=reservation.tenant_id, kind="refund", amount=reservation.amount,
-            reference_type="reservation", reference_id=reservation.id,
-            metadata_json={"reason": reason},
+            tenant_id=reservation.tenant_id,
+            kind="refund",
+            amount=reservation.amount,
+            reference_type="reservation",
+            reference_id=reservation.id,
+            metadata_json={"reason": reason[:200]},
         ))
+
+def reconcile_wallet(tenant_id: str) -> dict:
+    """Check wallet invariants against open reservations and ledger-derived net balance."""
+    with session_scope() as db:
+        wallet = db.execute(
+            select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
+        ).scalar_one()
+        open_reserved = db.execute(
+            select(func.coalesce(func.sum(Reservation.amount), 0)).where(
+                Reservation.tenant_id == tenant_id,
+                Reservation.status == "reserved",
+            )
+        ).scalar_one()
+        ledger_net = db.execute(
+            select(func.coalesce(func.sum(WalletLedger.amount), 0)).where(
+                WalletLedger.tenant_id == tenant_id,
+                WalletLedger.kind.in_(["credit", "charge"]),
+            )
+        ).scalar_one()
+        observed_total = wallet.available_credits + wallet.reserved_credits
+        ok = (
+            wallet.available_credits >= 0
+            and wallet.reserved_credits >= 0
+            and wallet.reserved_credits == int(open_reserved)
+            and observed_total == int(ledger_net)
+        )
+        return {
+            "tenant_id": tenant_id,
+            "ok": ok,
+            "available_credits": wallet.available_credits,
+            "reserved_credits": wallet.reserved_credits,
+            "open_reserved": int(open_reserved),
+            "ledger_net": int(ledger_net),
+            "observed_total": observed_total,
+        }
