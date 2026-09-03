@@ -1,8 +1,8 @@
 from sqlalchemy import select, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from fastapi import HTTPException
 from .db import session_scope
 from .models import Wallet, WalletLedger, Reservation, PaymentEvent
-from .security import utcnow
 
 def get_wallet(tenant_id: str) -> dict:
     with session_scope() as db:
@@ -25,24 +25,28 @@ def process_verified_payment(
     payload_hash: str,
     status: str,
 ) -> dict:
-    """Record the provider event and credit the wallet in one DB transaction."""
+    """Idempotently record a provider event and credit the wallet in one transaction."""
     with session_scope() as db:
-        existing = db.execute(
-            select(PaymentEvent).where(PaymentEvent.provider_event_id == provider_event_id)
+        inserted = db.execute(
+            pg_insert(PaymentEvent)
+            .values(
+                provider=provider,
+                provider_event_id=provider_event_id,
+                event_type=event_type,
+                tenant_id=tenant_id,
+                credits=credits,
+                payload_hash=payload_hash,
+                status=status,
+            )
+            .on_conflict_do_nothing(index_elements=["provider_event_id"])
+            .returning(PaymentEvent.id)
         ).scalar_one_or_none()
-        if existing:
-            return {"received": True, "duplicate": True, "status": existing.status}
 
-        event = PaymentEvent(
-            provider=provider,
-            provider_event_id=provider_event_id,
-            event_type=event_type,
-            tenant_id=tenant_id,
-            credits=credits,
-            payload_hash=payload_hash,
-            status=status,
-        )
-        db.add(event)
+        if inserted is None:
+            existing = db.execute(
+                select(PaymentEvent).where(PaymentEvent.provider_event_id == provider_event_id)
+            ).scalar_one()
+            return {"received": True, "duplicate": True, "status": existing.status}
 
         if status == "verified":
             if not tenant_id or credits <= 0:
@@ -127,7 +131,6 @@ def refund_run(run_id: str, reason: str):
         ))
 
 def reconcile_wallet(tenant_id: str) -> dict:
-    """Check wallet invariants against open reservations and ledger-derived net balance."""
     with session_scope() as db:
         wallet = db.execute(
             select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
