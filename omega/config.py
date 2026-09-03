@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     omega_env: str = "production"
-    omega_host: str = "0.0.0.0"
+    omega_host: str = "127.0.0.1"
     omega_port: int = 8000
     omega_public_url: str
 
