@@ -6,10 +6,10 @@ from sqlalchemy import text, select
 
 from .config import settings
 from .db import engine, session_scope
-from .admin import create_tenant
+from .admin import create_tenant, rotate_api_key
 from .billing import reconcile_wallet, refund_run, settle_run
 from .models import Run, Reservation
-from .security import generate_api_key, utcnow
+from .security import utcnow
 
 def _reconcile_run(run_id: str, action: str, charge: int | None):
     with session_scope() as db:
@@ -58,20 +58,12 @@ def _reconcile_run(run_id: str, action: str, charge: int | None):
         "status": "PARTIAL",
     }))
 
-def _read_new_api_key() -> str:
-    generated = generate_api_key()
-    prompt = (
-        "Enter a pre-generated OMEGA API key, or press Enter to use a securely generated key "
-        "that will be shown once by the terminal prompt: "
-    )
-    supplied = getpass.getpass(prompt)
-    if supplied:
-        return supplied
-    # getpass writes to the controlling terminal, not stdout/stderr logs.
-    getpass.getpass(
-        f"Generated API key (copy it now; press Enter after saving it): {generated}"
-    )
-    return generated
+def _read_api_key_twice() -> str:
+    first = getpass.getpass("Enter new OMEGA API key: ")
+    second = getpass.getpass("Confirm new OMEGA API key: ")
+    if not first or first != second:
+        raise SystemExit("API key confirmation failed")
+    return first
 
 def main():
     p = argparse.ArgumentParser(prog="omega")
@@ -82,6 +74,9 @@ def main():
     c = sub.add_parser("create-tenant")
     c.add_argument("--name", required=True)
     c.add_argument("--plan", default="pro")
+
+    rk = sub.add_parser("rotate-api-key")
+    rk.add_argument("--tenant-id", required=True)
 
     sub.add_parser("db-check")
 
@@ -98,10 +93,15 @@ def main():
     if args.cmd == "serve":
         uvicorn.run("omega.api:app", host=settings.omega_host, port=settings.omega_port)
     elif args.cmd == "create-tenant":
-        raw_api_key = _read_new_api_key()
+        raw_api_key = _read_api_key_twice()
         tenant_id = create_tenant(args.name, raw_api_key, args.plan)
         print(f"tenant_id={tenant_id}")
         print("tenant_created=PASS")
+    elif args.cmd == "rotate-api-key":
+        raw_api_key = _read_api_key_twice()
+        rotate_api_key(args.tenant_id, raw_api_key)
+        print(f"tenant_id={args.tenant_id}")
+        print("api_key_rotated=PASS")
     elif args.cmd == "db-check":
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
