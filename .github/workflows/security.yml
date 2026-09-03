@@ -1,14 +1,57 @@
 name: Security
+
 on:
   push:
+    branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 3 * * 1"
+
 permissions:
   contents: read
+  security-events: write
+
 jobs:
-  secret-patterns:
+  application-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Block committed dotenv/private key files
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Reject tracked secrets
+        shell: bash
         run: |
-          ! git ls-files | grep -E '(^|/)\.env$|\.pem$|\.key$|credentials\.json$'
+          set -euo pipefail
+          ! git ls-files | grep -E '(^|/)(\.env$|id_rsa$|id_ed25519$|.*\.pem$|.*\.key$|credentials\.json$|service-account\.json$)'
+      - name: Install audit tools
+        run: python -m pip install pip-audit bandit
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+      - name: Python SAST
+        run: bandit -q -r omega -x tests
+      - name: Build production image
+        run: docker build --pull -t omega-security-scan:${{ github.sha }} .
+      - name: Filesystem, secret, dependency and IaC scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Container image scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: omega-security-scan:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          artifact-name: omega-sbom.spdx.json
