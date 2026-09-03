@@ -34,7 +34,7 @@ jobs:
       - name: Build production image
         run: docker build --pull -t omega-security-scan:${{ github.sha }} .
       - name: Filesystem, secret, dependency and IaC scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: fs
           scan-ref: .
@@ -43,7 +43,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
       - name: Container image scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: omega-security-scan:${{ github.sha }}
           severity: HIGH,CRITICAL
