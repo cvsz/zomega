@@ -38,9 +38,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
       - name: Attest image provenance
         uses: actions/attest-build-provenance@v3
         with:
