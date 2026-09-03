@@ -1,26 +1,34 @@
-# OMEGA Production 2.0
+# OMEGA Production 2.1
 
-OMEGA is a paid-before-use, multi-tenant Agents + Skills API.
+OMEGA is a paid-before-use, multi-tenant Agents + Skills API with 12 specialized Agents and 100 billable Skills.
 
-This edition has no development execution provider and no local in-memory billing path.
-Billable execution uses OpenAI through the official Python SDK; payments use Stripe Checkout
-and signed Stripe webhooks; durable state uses PostgreSQL; rate limiting and background jobs
-use Redis + ARQ.
+OMEGA 2.1 hardens the real-money and durable-execution path with atomic Stripe fulfillment,
+PostgreSQL wallet locks, a transactional outbox, retry-safe skill checkpoints, budget-aware agent
+execution, route-level API-key scopes, cancellation, reservation reaping, wallet reconciliation,
+and production CI/CD gates.
 
-## Invariant
+## Paid-before-use invariant
 
 ```text
-API key → tenant → entitlement → rate limit → price → transactional credit reservation
-→ durable queue → worker → OpenAI Responses API → meter → settle/refund → evidence
+API key
+→ tenant + scope + entitlement
+→ rate limit
+→ transactional run + wallet reservation + ledger + outbox
+→ Redis dispatch
+→ worker checkpoint
+→ OpenAI Responses API
+→ meter
+→ settle / refund
+→ evidence
 ```
 
-A run cannot be queued unless the wallet reservation succeeds.
+No billable run is dispatched unless its credit reservation committed successfully.
 
 ## Required services
 
 - PostgreSQL
 - Redis
-- Stripe account + secret/webhook signing secret
+- Stripe account with three server-owned Price IDs
 - OpenAI API key
 - HTTPS public URL
 
@@ -28,32 +36,48 @@ A run cannot be queued unless the wallet reservation succeeds.
 
 ```bash
 cp .env.example .env
-# fill required values
+# configure all required values
 docker compose up --build -d
+docker compose exec api alembic upgrade head
 docker compose exec api omega create-tenant --name "First Tenant" --plan pro
 ```
 
-The tenant creation command prints the API key exactly once.
+The tenant API key is shown once.
 
-## Buy credits
+## Credit packages
 
-Authenticated clients call:
+Configure these Stripe Price IDs:
+
+```text
+STRIPE_PRICE_CREDITS_1000
+STRIPE_PRICE_CREDITS_5000
+STRIPE_PRICE_CREDITS_20000
+```
+
+Discover public packages:
+
+```http
+GET /v1/billing/packages
+```
+
+Create Checkout:
 
 ```http
 POST /v1/checkout
 Authorization: Bearer omega_...
 Content-Type: application/json
 
-{"credits":1000}
+{"package_id":"credits_1000"}
 ```
 
-The API returns a Stripe-hosted checkout URL. Credits are granted only from a verified
-`checkout.session.completed` or `checkout.session.async_payment_succeeded` event whose
-`payment_status` is `paid`.
+Credits are granted only from a Stripe-signed paid Checkout webhook. The payment event and wallet
+credit commit in the same PostgreSQL transaction, and duplicate Stripe events are idempotent.
 
-Configure Stripe to send events to:
+Webhook endpoint:
 
-`POST /v1/payment-webhooks/stripe`
+```text
+POST /v1/payment-webhooks/stripe
+```
 
 ## Run a Skill
 
@@ -66,7 +90,8 @@ Content-Type: application/json
 {"input":{"repository":"owner/project"}}
 ```
 
-Returns HTTP 202 and a `run_id`. Poll `GET /v1/runs/{run_id}`.
+A successful request returns HTTP 202 with `QUEUED` or `PENDING_DISPATCH`. `PENDING_DISPATCH`
+means the reservation is safe in PostgreSQL and the outbox dispatcher will retry Redis delivery.
 
 ## Run an Agent
 
@@ -79,19 +104,51 @@ Content-Type: application/json
 {"input":{"objective":"Audit the supplied repository"},"max_spend_credits":500}
 ```
 
+The worker checks remaining budget before launching each skill. Reaching the caller's spend cap
+finishes as `PARTIAL / BUDGET_EXHAUSTED` rather than charging beyond the limit.
+
+## Cancel a Run
+
+```http
+POST /v1/runs/{run_id}/cancel
+Authorization: Bearer omega_...
+```
+
+Queued runs are cancelled and refunded immediately. Running jobs stop between skills and settle
+only completed billable work.
+
+## API-key scopes
+
+Primary tenant keys receive:
+
+- `agents:run`
+- `skills:run`
+- `billing:read`
+- `billing:write`
+- `runs:read`
+- `runs:cancel`
+
+Internal skill prompts, validation rules, and permissions are never exposed by public catalog
+endpoints.
+
+## Reconciliation
+
+```bash
+omega reconcile-wallet --tenant-id <tenant-id>
+omega reconcile-run --run-id <run-id> --action refund
+omega reconcile-run --run-id <run-id> --action settle --charge <credits>
+```
+
+Manual run reconciliation is restricted to `BLOCKED / AMBIGUOUS_PROVIDER_STATE`. OMEGA refuses
+automatic re-execution when a provider call may already have occurred.
+
 ## Production validation
 
 ```bash
 ./verify.sh
 ```
 
-## Repository baseline
+CI additionally performs PostgreSQL/Redis migration and billing integration tests. Security gates
+include dependency audit, Python SAST, Trivy filesystem/container/IaC scanning, and SBOM generation.
 
-This repository also includes the shared engineering baseline: contribution and
-security policies, issue and pull request templates, CODEOWNERS, Dependabot, CodeQL,
-dependency review, CI validation, release guidance, architecture documentation, and
-an ADR template. OMEGA-specific runtime and operational documentation is under
-`docs/`.
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), and
-[`docs/development.md`](docs/development.md) before making changes.
+See `docs/ARCHITECTURE.md`, `docs/BILLING.md`, `docs/OPERATIONS.md`, and `docs/RUNBOOK.md`.
