@@ -42,7 +42,19 @@ docker compose exec api alembic upgrade head
 docker compose exec api omega create-tenant --name "First Tenant" --plan pro
 ```
 
-The tenant API key is shown once.
+`create-tenant` prompts twice for a pre-generated `omega_...` API key using hidden terminal input. The CLI never prints the secret. Generate and store the key in a password manager or secret manager before running the command.
+
+## API-key rotation after the CodeQL hardening update
+
+OMEGA now stores API-key lookup digests using keyed BLAKE2b-512. Migration `0003` deactivates legacy 64-character HMAC-SHA256 digests because raw API keys are intentionally never stored and therefore cannot be rehashed safely.
+
+Rotate a tenant key explicitly:
+
+```bash
+omega rotate-api-key --tenant-id <tenant-id>
+```
+
+The command accepts and confirms the new key through hidden terminal input and does not emit the secret to stdout/stderr.
 
 ## Credit packages
 

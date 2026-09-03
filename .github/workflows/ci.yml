@@ -36,6 +36,7 @@ jobs:
             .editorconfig .gitattributes .env.example Dockerfile Makefile
             migrations/versions/0001_initial.py
             migrations/versions/0002_transactional_reliability.py
+            migrations/versions/0003_rotate_legacy_api_key_digests.py
           )
           for path in "${required[@]}"; do
             test -f "$path" || { echo "Missing required file: $path"; exit 1; }
@@ -119,4 +120,4 @@ jobs:
           alembic downgrade base
           alembic upgrade head
       - name: Verify schema head
-        run: test "$(alembic current | awk '{print $1}')" = "0002"
+        run: test "$(alembic current | awk '{print $1}')" = "0003"

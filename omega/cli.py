@@ -1,11 +1,12 @@
 import argparse
+import getpass
 import json
 import uvicorn
 from sqlalchemy import text, select
 
 from .config import settings
 from .db import engine, session_scope
-from .admin import create_tenant
+from .admin import create_tenant, rotate_api_key
 from .billing import reconcile_wallet, refund_run, settle_run
 from .models import Run, Reservation
 from .security import utcnow
@@ -57,6 +58,13 @@ def _reconcile_run(run_id: str, action: str, charge: int | None):
         "status": "PARTIAL",
     }))
 
+def _read_api_key_twice() -> str:
+    first = getpass.getpass("Enter new OMEGA API key: ")
+    second = getpass.getpass("Confirm new OMEGA API key: ")
+    if not first or first != second:
+        raise SystemExit("API key confirmation failed")
+    return first
+
 def main():
     p = argparse.ArgumentParser(prog="omega")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -66,6 +74,9 @@ def main():
     c = sub.add_parser("create-tenant")
     c.add_argument("--name", required=True)
     c.add_argument("--plan", default="pro")
+
+    rk = sub.add_parser("rotate-api-key")
+    rk.add_argument("--tenant-id", required=True)
 
     sub.add_parser("db-check")
 
@@ -82,10 +93,15 @@ def main():
     if args.cmd == "serve":
         uvicorn.run("omega.api:app", host=settings.omega_host, port=settings.omega_port)
     elif args.cmd == "create-tenant":
-        tenant_id, api_key = create_tenant(args.name, args.plan)
+        raw_api_key = _read_api_key_twice()
+        tenant_id = create_tenant(args.name, raw_api_key, args.plan)
         print(f"tenant_id={tenant_id}")
-        print(f"api_key={api_key}")
-        print("Store this API key securely; it will not be shown again.")
+        print("tenant_created=PASS")
+    elif args.cmd == "rotate-api-key":
+        raw_api_key = _read_api_key_twice()
+        rotate_api_key(args.tenant_id, raw_api_key)
+        print(f"tenant_id={args.tenant_id}")
+        print("api_key_rotated=PASS")
     elif args.cmd == "db-check":
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
