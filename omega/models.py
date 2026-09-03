@@ -2,10 +2,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from sqlalchemy import (
-    String, Integer, BigInteger, Boolean, DateTime, ForeignKey,
-    Text, UniqueConstraint, JSON, Index
+    String, BigInteger, Boolean, DateTime, ForeignKey,
+    UniqueConstraint, JSON, Index, CheckConstraint
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 
 def uid() -> str:
@@ -41,6 +41,10 @@ class Wallet(Base):
     reserved_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("available_credits >= 0", name="ck_wallet_available_nonnegative"),
+        CheckConstraint("reserved_credits >= 0", name="ck_wallet_reserved_nonnegative"),
+    )
 
 class WalletLedger(Base):
     __tablename__ = "wallet_ledger"
@@ -54,6 +58,8 @@ class WalletLedger(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         Index("ix_ledger_tenant_created", "tenant_id", "created_at"),
+        UniqueConstraint("tenant_id", "kind", "reference_type", "reference_id", name="uq_ledger_reference"),
+        CheckConstraint("amount <> 0", name="ck_ledger_amount_nonzero"),
     )
 
 class Run(Base):
@@ -68,6 +74,7 @@ class Run(Base):
     charged_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     max_spend_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
     error_code: Mapped[str | None] = mapped_column(String(80))
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -82,6 +89,10 @@ class Reservation(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="reserved")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_reservation_amount_positive"),
+        CheckConstraint("settled_amount >= 0", name="ck_reservation_settled_nonnegative"),
+    )
 
 class UsageEvent(Base):
     __tablename__ = "usage_events"
@@ -121,3 +132,39 @@ class Evidence(Base):
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class OutboxEvent(Base):
+    __tablename__ = "outbox_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    aggregate_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    aggregate_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    attempts: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("aggregate_type", "aggregate_id", "event_type", name="uq_outbox_aggregate_event"),
+    )
+
+class SkillExecution(Base):
+    __tablename__ = "skill_executions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    skill_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    sequence_no: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="PENDING")
+    provider_response_id: Mapped[str | None] = mapped_column(String(150))
+    input_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    charged_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    output_json: Mapped[dict | None] = mapped_column(JSON)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("run_id", "sequence_no", name="uq_skill_execution_run_sequence"),
+        UniqueConstraint("run_id", "skill_id", name="uq_skill_execution_run_skill"),
+    )
