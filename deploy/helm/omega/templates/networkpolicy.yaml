@@ -1,8 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-default-deny
-  namespace: omega
+  name: {{ .Release.Name }}-default-deny
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
@@ -10,11 +9,10 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-api-ingress
-  namespace: omega
+  name: {{ .Release.Name }}-api-ingress
 spec:
   podSelector:
-    matchLabels: {app: omega-api}
+    matchLabels: {app.kubernetes.io/name: omega-api}
   policyTypes: [Ingress]
   ingress:
     - ports:
@@ -23,12 +21,13 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-runtime-egress
-  namespace: omega
+  name: {{ .Release.Name }}-runtime-egress
 spec:
   podSelector:
     matchExpressions:
-      - {key: app, operator: In, values: [omega-api, omega-worker, omega-migrate]}
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [omega-api, omega-worker, omega-migrate]
   policyTypes: [Egress]
   egress:
     - to:

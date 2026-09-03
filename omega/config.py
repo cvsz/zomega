@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     omega_env: str = "production"
-    omega_host: str = "0.0.0.0"
+    omega_host: str = "127.0.0.1"
     omega_port: int = 8000
     omega_public_url: str
 
@@ -23,8 +23,9 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str
     stripe_webhook_secret: str
-    stripe_currency: str = "usd"
-    stripe_credit_unit_amount: int = 10
+    stripe_price_credits_1000: str
+    stripe_price_credits_5000: str
+    stripe_price_credits_20000: str
 
     omega_log_level: str = "INFO"
 

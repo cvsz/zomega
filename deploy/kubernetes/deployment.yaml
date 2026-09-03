@@ -11,17 +11,39 @@ spec:
     spec:
       serviceAccountName: omega
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: api
-          image: ghcr.io/example/omega:2.0.0
+          image: ghcr.io/cvsz/zomega:2.1.0
+          imagePullPolicy: IfNotPresent
           command: ["python","-m","omega","serve"]
           ports: [{name: http, containerPort: 8000}]
           envFrom: [{secretRef: {name: omega-runtime}}]
-          readinessProbe: {httpGet: {path: /health/ready, port: http}}
-          livenessProbe: {httpGet: {path: /health/live, port: http}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: {path: /health/live, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             requests: {cpu: "200m", memory: "256Mi"}
             limits: {cpu: "2", memory: "2Gi"}
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,11 +58,25 @@ spec:
     spec:
       serviceAccountName: omega
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: worker
-          image: ghcr.io/example/omega:2.0.0
+          image: ghcr.io/cvsz/zomega:2.1.0
+          imagePullPolicy: IfNotPresent
           command: ["arq","omega.jobs.WorkerSettings"]
           envFrom: [{secretRef: {name: omega-runtime}}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
           resources:
             requests: {cpu: "200m", memory: "256Mi"}
             limits: {cpu: "2", memory: "2Gi"}
+      volumes:
+        - name: tmp
+          emptyDir: {}

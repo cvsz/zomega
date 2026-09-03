@@ -1,8 +1,16 @@
-from sqlalchemy import select
 from .db import session_scope
 from .models import Tenant, Wallet, ApiKey
 from .security import generate_api_key, digest_api_key
 from .config import settings
+
+DEFAULT_SCOPES = [
+    "agents:run",
+    "skills:run",
+    "billing:read",
+    "billing:write",
+    "runs:read",
+    "runs:cancel",
+]
 
 def create_tenant(name: str, plan: str | None = None) -> tuple[str, str]:
     raw_key = generate_api_key()
@@ -15,7 +23,7 @@ def create_tenant(name: str, plan: str | None = None) -> tuple[str, str]:
             tenant_id=tenant.id,
             name="primary",
             key_digest=digest_api_key(raw_key),
-            scopes=["agents:run", "skills:run", "billing:read"],
+            scopes=DEFAULT_SCOPES,
             active=True,
         ))
         return tenant.id, raw_key

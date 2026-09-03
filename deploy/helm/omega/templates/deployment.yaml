@@ -11,6 +11,10 @@ spec:
       labels: {app.kubernetes.io/name: omega-api}
     spec:
       serviceAccountName: {{ .Release.Name }}-omega
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -20,11 +24,21 @@ spec:
             - secretRef: {name: {{ .Values.runtimeSecretName }}}
           ports:
             - {name: http, containerPort: 8000}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
           readinessProbe:
             httpGet: {path: /health/ready, port: http}
           livenessProbe:
             httpGet: {path: /health/live, port: http}
           resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,10 +53,25 @@ spec:
       labels: {app.kubernetes.io/name: omega-worker}
     spec:
       serviceAccountName: {{ .Release.Name }}-omega
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
       containers:
         - name: worker
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["arq","omega.jobs.WorkerSettings"]
           envFrom:
             - secretRef: {name: {{ .Values.runtimeSecretName }}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 10001
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
           resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

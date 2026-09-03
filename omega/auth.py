@@ -19,9 +19,24 @@ def authenticate(raw_key: str, required_scope: str | None = None) -> dict:
             raise HTTPException(401, "API key expired")
         if required_scope and required_scope not in key.scopes and "*" not in key.scopes:
             raise HTTPException(403, f"Missing scope: {required_scope}")
-        return {"id": tenant.id, "name": tenant.name, "plan": tenant.plan}
+        return {
+            "id": tenant.id,
+            "name": tenant.name,
+            "plan": tenant.plan,
+            "api_key_id": key.id,
+            "scopes": list(key.scopes),
+        }
 
-async def require_tenant(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Bearer authorization required")
-    return authenticate(authorization[7:].strip())
+def require_scope(scope: str):
+    async def dependency(authorization: str = Header(...)):
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(401, "Bearer authorization required")
+        return authenticate(authorization[7:].strip(), scope)
+    return dependency
+
+require_billing_read = require_scope("billing:read")
+require_billing_write = require_scope("billing:write")
+require_skills_run = require_scope("skills:run")
+require_agents_run = require_scope("agents:run")
+require_runs_read = require_scope("runs:read")
+require_runs_cancel = require_scope("runs:cancel")
