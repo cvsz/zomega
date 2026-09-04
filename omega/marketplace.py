@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 
 from .audit import record_audit
 from .db import session_scope
-from .models import MarketplaceLedger, MarketplaceListing, PrivateSkill
+from .models import MarketplaceLedger, MarketplaceListing, PrivateSkill, SkillLicense, Wallet, WalletLedger
 
 def create_listing(
     tenant_id: str,
@@ -126,3 +126,115 @@ def marketplace_balance(tenant_id: str) -> dict:
                 "created_at": r.created_at,
             } for r in rows],
         }
+
+
+def purchase_listing(buyer_tenant_id: str, actor_key_id: str, listing_id: str) -> dict:
+    with session_scope() as db:
+        listing = db.execute(
+            select(MarketplaceListing)
+            .where(MarketplaceListing.id == listing_id, MarketplaceListing.status == "active")
+            .with_for_update()
+        ).scalar_one_or_none()
+        if not listing:
+            raise HTTPException(404, "Active listing not found")
+        if listing.publisher_tenant_id == buyer_tenant_id:
+            raise HTTPException(409, "Publisher cannot purchase its own listing")
+
+        existing = db.execute(
+            select(SkillLicense).where(
+                SkillLicense.tenant_id == buyer_tenant_id,
+                SkillLicense.listing_id == listing_id,
+            )
+        ).scalar_one_or_none()
+        if existing:
+            raise HTTPException(409, "Listing already licensed")
+
+        wallet = db.execute(
+            select(Wallet).where(Wallet.tenant_id == buyer_tenant_id).with_for_update()
+        ).scalar_one_or_none()
+        if not wallet:
+            raise HTTPException(404, "Buyer wallet not found")
+        if wallet.available_credits < listing.price_credits:
+            raise HTTPException(
+                402,
+                detail={
+                    "code": "INSUFFICIENT_CREDITS",
+                    "required": listing.price_credits,
+                    "available": wallet.available_credits,
+                },
+            )
+
+        license_row = SkillLicense(
+            tenant_id=buyer_tenant_id,
+            listing_id=listing_id,
+            purchase_price_credits=listing.price_credits,
+        )
+        db.add(license_row)
+        db.flush()
+
+        wallet.available_credits -= listing.price_credits
+        wallet.version += 1
+        db.add(WalletLedger(
+            tenant_id=buyer_tenant_id,
+            kind="charge",
+            amount=-listing.price_credits,
+            reference_type="marketplace_license",
+            reference_id=license_row.id,
+            metadata_json={"listing_id": listing_id},
+        ))
+
+        publisher_credits = listing.price_credits * listing.revenue_share_bps // 10000
+        if publisher_credits > 0:
+            db.add(MarketplaceLedger(
+                tenant_id=listing.publisher_tenant_id,
+                kind="publisher_revenue",
+                amount_credits=publisher_credits,
+                reference_type="marketplace_license",
+                reference_id=license_row.id,
+                metadata_json={
+                    "listing_id": listing_id,
+                    "buyer_tenant_id": buyer_tenant_id,
+                    "gross_credits": listing.price_credits,
+                    "revenue_share_bps": listing.revenue_share_bps,
+                },
+            ))
+        license_id = license_row.id
+        price = listing.price_credits
+        publisher_tenant_id = listing.publisher_tenant_id
+
+    record_audit(
+        buyer_tenant_id,
+        "api_key",
+        actor_key_id,
+        "marketplace.purchased",
+        "skill_license",
+        license_id,
+        {"listing_id": listing_id, "price_credits": price, "publisher_tenant_id": publisher_tenant_id},
+    )
+    return {
+        "license_id": license_id,
+        "listing_id": listing_id,
+        "price_credits": price,
+        "publisher_tenant_id": publisher_tenant_id,
+    }
+
+def list_licenses(tenant_id: str) -> list[dict]:
+    with session_scope() as db:
+        rows = db.execute(
+            select(SkillLicense, MarketplaceListing, PrivateSkill)
+            .join(MarketplaceListing, MarketplaceListing.id == SkillLicense.listing_id)
+            .join(PrivateSkill, PrivateSkill.id == MarketplaceListing.private_skill_id)
+            .where(SkillLicense.tenant_id == tenant_id)
+            .order_by(SkillLicense.created_at.desc())
+        ).all()
+        return [{
+            "license_id": lic.id,
+            "listing_id": listing.id,
+            "purchase_price_credits": lic.purchase_price_credits,
+            "skill": {
+                "slug": skill.slug,
+                "version": skill.version,
+                "manifest_hash": skill.manifest_hash,
+            },
+            "created_at": lic.created_at,
+        } for lic, listing, skill in rows]
