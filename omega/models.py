@@ -169,3 +169,19 @@ class SkillExecution(Base):
         UniqueConstraint("run_id", "sequence_no", name="uq_skill_execution_run_sequence"),
         UniqueConstraint("run_id", "skill_id", name="uq_skill_execution_run_skill"),
     )
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    actor_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    action: Mapped[str] = mapped_column(String(120), nullable=False)
+    target_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    target_id: Mapped[str | None] = mapped_column(String(120))
+    metadata_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        Index("ix_audit_tenant_created", "tenant_id", "created_at"),
+    )
