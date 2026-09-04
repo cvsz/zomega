@@ -1,8 +1,11 @@
+import secrets
+
 from fastapi import Header, HTTPException
 from sqlalchemy import select
 
 from .db import session_scope
 from .models import ApiKey, Tenant
+from .config import settings
 from .security import (
     api_key_needs_rehash,
     hash_api_key_secret,
@@ -65,3 +68,15 @@ require_runs_cancel = require_scope("runs:cancel")
 require_keys_read = require_scope("keys:read")
 require_keys_write = require_scope("keys:write")
 require_audit_read = require_scope("audit:read")
+require_orgs_read = require_scope("orgs:read")
+require_orgs_write = require_scope("orgs:write")
+require_private_skills_read = require_scope("private_skills:read")
+require_private_skills_write = require_scope("private_skills:write")
+require_marketplace_read = require_scope("marketplace:read")
+require_marketplace_write = require_scope("marketplace:write")
+require_platform_read = require_scope("platform:read")
+
+async def require_admin(x_omega_admin_token: str = Header(..., alias="X-OMEGA-Admin-Token")):
+    if not secrets.compare_digest(x_omega_admin_token, settings.omega_admin_token):
+        raise HTTPException(401, "Invalid admin token")
+    return {"actor": "omega-admin"}
