@@ -16,7 +16,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: api
-          image: ghcr.io/cvsz/zomega:2.1.0
+          image: ghcr.io/cvsz/zomega:2.2.0
           imagePullPolicy: IfNotPresent
           command: ["python","-m","omega","serve"]
           ports: [{name: http, containerPort: 8000}]
@@ -63,7 +63,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: worker
-          image: ghcr.io/cvsz/zomega:2.1.0
+          image: ghcr.io/cvsz/zomega:2.2.0
           imagePullPolicy: IfNotPresent
           command: ["arq","omega.jobs.WorkerSettings"]
           envFrom: [{secretRef: {name: omega-runtime}}]
