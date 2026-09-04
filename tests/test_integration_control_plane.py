@@ -23,6 +23,7 @@ class ControlPlaneIntegrationTest(unittest.TestCase):
                 plan="pro",
                 status="active",
             ))
+            db.flush()
             db.add(Wallet(
                 tenant_id=self.tenant_id,
                 available_credits=0,
