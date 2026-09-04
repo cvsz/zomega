@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import patch
 
 ENV = {
-    "zomega_PUBLIC_URL": "https://example.invalid",
+    "ZOMEGA_PUBLIC_URL": "https://example.invalid",
     "DATABASE_URL": "postgresql+psycopg://zomega:zomega@localhost:5432/zomega",
     "REDIS_URL": "redis://localhost:6379/0",
-    "zomega_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
-    "zomega_ADMIN_TOKEN": "test-admin",
+    "ZOMEGA_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
+    "ZOMEGA_ADMIN_TOKEN": "test-admin",
     "OPENAI_API_KEY": "test",
     "STRIPE_SECRET_KEY": "test",
     "STRIPE_WEBHOOK_SECRET": "test",

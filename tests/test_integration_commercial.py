@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import HTTPException
 
 @unittest.skipUnless(
-    os.getenv("zomega_INTEGRATION") == "1" or os.getenv("RUN_INTEGRATION_TESTS") == "1",
+    os.getenv("ZOMEGA_INTEGRATION") == "1" or os.getenv("zomega_INTEGRATION") == "1" or os.getenv("RUN_INTEGRATION_TESTS") == "1",
     "integration services not enabled",
 )
 class CommercialIntegrationTest(unittest.TestCase):

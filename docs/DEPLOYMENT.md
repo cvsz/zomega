@@ -4,15 +4,15 @@
 
 - DATABASE_URL
 - REDIS_URL
-- zomega_API_KEY_PEPPER
-- zomega_ADMIN_TOKEN
+- ZOMEGA_API_KEY_PEPPER
+- ZOMEGA_ADMIN_TOKEN
 - OPENAI_API_KEY
 - STRIPE_SECRET_KEY
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRICE_CREDITS_1000
 - STRIPE_PRICE_CREDITS_5000
 - STRIPE_PRICE_CREDITS_20000
-- zomega_PUBLIC_URL
+- ZOMEGA_PUBLIC_URL
 
 Inject runtime values through GitHub Environment Secrets plus a Kubernetes secret manager such as
 External Secrets, Vault, or SOPS. Never bake credentials into the image.
@@ -76,7 +76,7 @@ Secret:
 - `KUBECONFIG_B64`
 
 Variable:
-- `zomega_HEALTH_URL`
+- `ZOMEGA_HEALTH_URL`
 
 Recommended protection:
 - required reviewer

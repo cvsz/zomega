@@ -70,7 +70,7 @@ requires operator reconciliation.
 1. Revoke the affected key.
 2. Create a new least-privilege key or service account.
 3. Review audit events for the compromised key ID.
-4. Rotate `zomega_API_KEY_PEPPER` only with a coordinated key-rotation plan because it invalidates
+4. Rotate `ZOMEGA_API_KEY_PEPPER` only with a coordinated key-rotation plan because it invalidates
    existing Argon2id verification material.
 
 ## Production secret compromise
@@ -87,9 +87,9 @@ requires operator reconciliation.
 Use only a dedicated restore database.
 
 ```bash
-zomega_SOURCE_DATABASE_URL=... \
-zomega_BACKUP_FILE=backups/zomega-....dump \
-zomega_RESTORE_VERIFY_DATABASE_URL=... \
+ZOMEGA_SOURCE_DATABASE_URL=... \
+ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
+ZOMEGA_RESTORE_VERIFY_DATABASE_URL=... \
 ./restore-verify.sh
 ```
 

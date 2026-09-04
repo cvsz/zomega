@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      zomega_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      zomega_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
+      ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
+      ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v7
       - name: Require explicit drill confirmation
@@ -32,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$DATABASE_URL"
-          test -n "$zomega_RESTORE_VERIFY_DATABASE_URL"
-          test "$DATABASE_URL" != "$zomega_RESTORE_VERIFY_DATABASE_URL"
+          test -n "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
+          test "$DATABASE_URL" != "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export zomega_BACKUP_FILE="$(ls -1t backups/zomega-*.dump | head -n1)"
+          export ZOMEGA_BACKUP_FILE="$(ls -1t backups/zomega-*.dump | head -n1)"
           ./restore-verify.sh
       - name: Remove ephemeral backup
         if: always()

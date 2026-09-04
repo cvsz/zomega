@@ -110,13 +110,13 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
-      zomega_INTEGRATION: "1"
-      zomega_ENV: ci
-      zomega_PUBLIC_URL: https://example.invalid
+      ZOMEGA_INTEGRATION: "1"
+      ZOMEGA_ENV: ci
+      ZOMEGA_PUBLIC_URL: https://example.invalid
       DATABASE_URL: postgresql+psycopg://zomega:zomega@localhost:5432/zomega
       REDIS_URL: redis://localhost:6379/0
-      zomega_API_KEY_PEPPER: ci-pepper-ci-pepper-ci-pepper-ci-pepper
-      zomega_ADMIN_TOKEN: ci-admin-ci-admin-ci-admin-ci-admin
+      ZOMEGA_API_KEY_PEPPER: ci-pepper-ci-pepper-ci-pepper-ci-pepper
+      ZOMEGA_ADMIN_TOKEN: ci-admin-ci-admin-ci-admin-ci-admin
       OPENAI_API_KEY: ci-openai-not-used
       STRIPE_SECRET_KEY: sk_test_ci_not_used
       STRIPE_WEBHOOK_SECRET: whsec_ci_not_used

@@ -79,7 +79,7 @@ test:
 	$(PYTHON) -m unittest discover -s tests -v
 
 test-integration:
-	zomega_INTEGRATION=1 RUN_INTEGRATION_TESTS=1 $(PYTHON) -m unittest discover -s tests -v
+	ZOMEGA_INTEGRATION=1 RUN_INTEGRATION_TESTS=1 $(PYTHON) -m unittest discover -s tests -v
 
 test-all: test test-integration
 

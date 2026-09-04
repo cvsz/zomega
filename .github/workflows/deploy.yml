@@ -51,8 +51,9 @@ jobs:
           kubectl -n zomega rollout status deployment/zomega-worker --timeout=5m
       - name: External readiness verification
         env:
-          zomega_HEALTH_URL: ${{ vars.zomega_HEALTH_URL }}
+          ZOMEGA_HEALTH_URL: ${{ vars.ZOMEGA_HEALTH_URL || vars.zomega_HEALTH_URL }}
         run: |
           set -euo pipefail
-          test -n "$zomega_HEALTH_URL"
-          curl --fail --show-error --silent --retry 8 --retry-all-errors             "$zomega_HEALTH_URL/health/ready"
+          test -n "$ZOMEGA_HEALTH_URL"
+          curl --fail --show-error --silent --retry 8 --retry-all-errors \
+            "$ZOMEGA_HEALTH_URL/health/ready"

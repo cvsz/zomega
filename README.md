@@ -139,12 +139,12 @@ The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manif
 Restore verification requires a dedicated disposable restore database:
 
 ```bash
-zomega_BACKUP_FILE=backups/zomega-....dump \
-zomega_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
+ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
+ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
 make restore-verify
 ```
 
-The script refuses to restore into `zomega_SOURCE_DATABASE_URL` when supplied.
+The script refuses to restore into `ZOMEGA_SOURCE_DATABASE_URL` when supplied.
 
 GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
 `DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
