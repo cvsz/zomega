@@ -56,6 +56,7 @@ def upgrade():
         sa.Column("manifest_json", sa.JSON(), nullable=False),
         sa.Column("manifest_sha256", sa.String(64), nullable=False),
         sa.Column("signature_b64", sa.String(512), nullable=False),
+        sa.Column("publisher_public_key_pem", sa.String(4096), nullable=False),
         sa.Column("status", sa.String(30), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.UniqueConstraint("publisher_id", "skill_id", "version", name="uq_private_skill_publisher_version"),
