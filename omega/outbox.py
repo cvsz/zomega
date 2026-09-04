@@ -31,7 +31,7 @@ async def dispatch_run(run_id: str) -> bool:
         try:
             await redis.enqueue_job("execute_run", run_id, _job_id=run_id)
         finally:
-            await redis.close()
+            await redis.aclose()
     except Exception as exc:
         with session_scope() as db:
             event = db.execute(

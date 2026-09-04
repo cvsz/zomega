@@ -1,47 +1,29 @@
 # Changelog
 
-All notable OMEGA changes are documented here. The format follows Keep a Changelog;
-versioning follows the policy documented in `docs/release.md`.
+All notable OMEGA changes are documented here.
 
 ## [Unreleased]
 
 ### Added
 
-- Transactional outbox for durable run dispatch
-- Durable per-skill execution checkpoints
-- Reservation reaper and wallet reconciliation jobs
-- Run cancellation and operator reconciliation commands
-- Route-level API-key scope enforcement
-- Fixed server-owned Stripe credit packages
-- PostgreSQL/Redis billing integration tests
-- Trivy, dependency audit, Python SAST, container scanning, and SBOM gates
-- Immutable GHCR release build with provenance attestation
-- Atomic Helm production deployment workflow
-- ADR for real-money transactional reliability
+- Tenant self-service API-key create/list/revoke API.
+- Tenant-scoped immutable audit event model and API.
+- Migration `0005` for audit events.
+- Ruff correctness lint and mypy security/control-plane checks.
+- PostgreSQL/Redis control-plane integration tests.
+- Live FastAPI smoke verification in CI.
+- Mode-0600 API-key file generation.
 
 ### Changed
 
-- OMEGA version to 2.1.0
-- Public catalog now exposes sanitized DTOs only
-- Agent execution is budget-aware before launching each skill
-- Kubernetes/Helm workloads use hardened security contexts and explicit NetworkPolicy egress
-- Initial Alembic migration is frozen and deterministic
-
-### Fixed
-
-- Stripe webhook event/wallet-credit atomicity gap
-- Concurrent Stripe duplicate-event race
-- Reservation-without-queue-intent failure mode
-- Concurrent idempotency-key race across API replicas
-- Idempotency hash omission of requested spend reservation
-- Cancellation arriving during the final skill
-- Historical migration drift caused by importing live model metadata
+- OMEGA version to 2.2.0.
+- Primary tenant keys now include `keys:read`, `keys:write`, and `audit:read`.
+- Helm and static Kubernetes image defaults align with 2.2.0.
+- Release workflow now repeats lint/type gates before publishing an image.
 
 ### Security
 
-- Internal skill prompts, validation rules, and permissions are no longer exposed by catalog routes.
-- API keys now enforce billing, run, agent, and skill scopes per route.
-- API-key secrets now use Argon2id with a public locator for indexed lookup; deterministic hashing of sensitive API-key material has been removed.
-- `create-tenant` and `rotate-api-key` accept secrets only through hidden terminal input and never print API keys.
-- Migration `0004` deactivates all pre-Argon2 API-key digests so operators must rotate them explicitly.
-- `omega generate-api-key --output <file>` creates the new locator+secret format in a mode-0600 file without printing the secret.
+- API-key secrets use Argon2id with a public locator for indexed lookup.
+- API-key lifecycle audit records never contain raw secrets.
+- Self-service key revocation refuses to revoke the currently authenticated key.
+- API-key scope input is validated against an explicit allowlist.
