@@ -31,7 +31,7 @@ from .run_service import create_skill_run, create_agent_run
 from .security import utcnow
 from .key_service import list_api_keys, create_api_key, create_service_account, revoke_api_key, ROLE_SCOPES
 from .audit import list_audit_events, export_audit_ndjson, record_audit
-from .registry import create_or_update_publisher, publish_skill, list_granted_skills
+from .registry import create_or_update_publisher, publish_skill, list_granted_skills, verify_skill_version
 from .marketplace import create_listing, list_listings, purchase_listing, publisher_earnings
 
 app = FastAPI(title="OMEGA Production API", version="3.0.0")
@@ -338,6 +338,10 @@ def private_skill_publish(
         manifest=body.manifest,
         signature_b64=body.signature_b64,
     )
+
+@app.get("/v1/private-skills/{skill_version_id}/verify")
+def private_skill_verify(skill_version_id: str, tenant=Depends(require_registry_read)):
+    return verify_skill_version(skill_version_id)
 
 @app.get("/v1/private-skills/grants")
 def private_skill_grants(tenant=Depends(require_registry_read)):
