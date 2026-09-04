@@ -43,6 +43,10 @@ jobs:
             migrations/versions/0007_service_account_roles.py
             migrations/versions/0008_expand_primary_scopes.py
             restore-verify.sh
+            .github/workflows/dr-verify.yml
+            deploy/helm/omega/templates/pdb.yaml
+            deploy/kubernetes/pdb.yaml
+            docs/COMMERCIAL.md docs/PRIVATE_REGISTRY.md docs/DISASTER_RECOVERY.md
             requirements-dev.txt
           )
           for path in "${required[@]}"; do
