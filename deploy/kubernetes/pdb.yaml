@@ -1,0 +1,19 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: omega-api
+  namespace: omega
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: omega-api}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: omega-worker
+  namespace: omega
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: omega-worker}
