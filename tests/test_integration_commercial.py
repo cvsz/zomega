@@ -8,7 +8,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import HTTPException
 
-@unittest.skipUnless(os.getenv("zomega_INTEGRATION") == "1", "integration services not enabled")
+@unittest.skipUnless(
+    os.getenv("zomega_INTEGRATION") == "1" or os.getenv("RUN_INTEGRATION_TESTS") == "1",
+    "integration services not enabled",
+)
 class CommercialIntegrationTest(unittest.TestCase):
     def _tenant(self, name: str, credits: int) -> tuple[str, str]:
         from zomega.admin import DEFAULT_SCOPES

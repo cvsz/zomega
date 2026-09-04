@@ -155,6 +155,7 @@ GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Producti
 make lint
 make typecheck
 make test
+make validate
 make verify
 ```
 

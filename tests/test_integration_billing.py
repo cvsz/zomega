@@ -5,7 +5,10 @@ import unittest
 
 from sqlalchemy import select, func
 
-@unittest.skipUnless(os.getenv("zomega_INTEGRATION") == "1", "integration services not enabled")
+@unittest.skipUnless(
+    os.getenv("zomega_INTEGRATION") == "1" or os.getenv("RUN_INTEGRATION_TESTS") == "1",
+    "integration services not enabled",
+)
 class BillingIntegrationTest(unittest.TestCase):
     def setUp(self):
         from zomega.db import session_scope
