@@ -185,3 +185,108 @@ class AuditEvent(Base):
     __table_args__ = (
         Index("ix_audit_tenant_created", "tenant_id", "created_at"),
     )
+
+
+class TenantQuota(Base):
+    __tablename__ = "tenant_quotas"
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True)
+    monthly_credit_cap: Mapped[int] = mapped_column(BigInteger, nullable=False, default=100000)
+    max_api_keys: Mapped[int] = mapped_column(BigInteger, nullable=False, default=20)
+    max_concurrent_runs: Mapped[int] = mapped_column(BigInteger, nullable=False, default=10)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("monthly_credit_cap > 0", name="ck_quota_monthly_credit_cap_positive"),
+        CheckConstraint("max_api_keys > 0", name="ck_quota_max_api_keys_positive"),
+        CheckConstraint("max_concurrent_runs > 0", name="ck_quota_max_concurrent_runs_positive"),
+    )
+
+class SubscriptionState(Base):
+    __tablename__ = "subscription_states"
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(30), nullable=False, default="stripe")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    plan: Mapped[str] = mapped_column(String(40), nullable=False)
+    provider_subscription_id: Mapped[str | None] = mapped_column(String(150), unique=True)
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class TenantUsageMonthly(Base):
+    __tablename__ = "tenant_usage_monthly"
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True)
+    period: Mapped[str] = mapped_column(String(7), primary_key=True)
+    runs: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    charged_credits: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    input_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("runs >= 0", name="ck_usage_runs_nonnegative"),
+        CheckConstraint("charged_credits >= 0", name="ck_usage_charged_nonnegative"),
+        CheckConstraint("input_tokens >= 0", name="ck_usage_input_tokens_nonnegative"),
+        CheckConstraint("output_tokens >= 0", name="ck_usage_output_tokens_nonnegative"),
+    )
+
+class Organization(Base):
+    __tablename__ = "organizations"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_org_tenant_name"),)
+
+class OrganizationMember(Base):
+    __tablename__ = "organization_members"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    subject: Mapped[str] = mapped_column(String(200), nullable=False)
+    role: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("organization_id", "subject", name="uq_org_member_subject"),
+        CheckConstraint("role IN ('owner','admin','developer','viewer','billing')", name="ck_org_member_role"),
+    )
+
+class PrivateSkill(Base):
+    __tablename__ = "private_skills"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    slug: Mapped[str] = mapped_column(String(120), nullable=False)
+    version: Mapped[str] = mapped_column(String(40), nullable=False)
+    manifest_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "slug", "version", name="uq_private_skill_tenant_slug_version"),
+        CheckConstraint("status IN ('active','disabled','revoked')", name="ck_private_skill_status"),
+    )
+
+class MarketplaceListing(Base):
+    __tablename__ = "marketplace_listings"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    publisher_tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    private_skill_id: Mapped[str] = mapped_column(ForeignKey("private_skills.id", ondelete="CASCADE"), unique=True)
+    price_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    revenue_share_bps: Mapped[int] = mapped_column(BigInteger, nullable=False, default=8000)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("price_credits > 0", name="ck_listing_price_positive"),
+        CheckConstraint("revenue_share_bps BETWEEN 0 AND 10000", name="ck_listing_revenue_share_bps"),
+        CheckConstraint("status IN ('draft','active','suspended')", name="ck_listing_status"),
+    )
+
+class MarketplaceLedger(Base):
+    __tablename__ = "marketplace_ledger"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    amount_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    reference_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    reference_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "kind", "reference_type", "reference_id", name="uq_marketplace_ledger_reference"),
+        CheckConstraint("amount_credits <> 0", name="ck_marketplace_ledger_nonzero"),
+    )
