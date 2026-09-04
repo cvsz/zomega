@@ -105,18 +105,33 @@ def purchase_listing(
         if publisher.tenant_id == tenant_id:
             raise HTTPException(409, "Publisher cannot purchase own listing")
 
-        wallet = db.execute(
-            select(Wallet).where(Wallet.tenant_id == tenant_id).with_for_update()
-        ).scalar_one_or_none()
-        if not wallet:
-            raise HTTPException(404, "Wallet not found")
-        if wallet.available_credits < listing.price_credits:
-            raise HTTPException(402, detail={"code": "INSUFFICIENT_CREDITS", "required": listing.price_credits, "available": wallet.available_credits})
+        wallets = db.execute(
+            select(Wallet)
+            .where(Wallet.tenant_id.in_([tenant_id, publisher.tenant_id]))
+            .order_by(Wallet.tenant_id)
+            .with_for_update()
+        ).scalars().all()
+        wallet_by_tenant = {wallet.tenant_id: wallet for wallet in wallets}
+        buyer_wallet = wallet_by_tenant.get(tenant_id)
+        publisher_wallet = wallet_by_tenant.get(publisher.tenant_id)
+        if not buyer_wallet or not publisher_wallet:
+            raise HTTPException(404, "Buyer or publisher wallet not found")
+        if buyer_wallet.available_credits < listing.price_credits:
+            raise HTTPException(
+                402,
+                detail={
+                    "code": "INSUFFICIENT_CREDITS",
+                    "required": listing.price_credits,
+                    "available": buyer_wallet.available_credits,
+                },
+            )
 
         publisher_credits = (listing.price_credits * listing.publisher_share_bps) // 10000
         platform_credits = listing.price_credits - publisher_credits
-        wallet.available_credits -= listing.price_credits
-        wallet.version += 1
+        buyer_wallet.available_credits -= listing.price_credits
+        buyer_wallet.version += 1
+        publisher_wallet.available_credits += publisher_credits
+        publisher_wallet.version += 1
 
         purchase = MarketplaceLedger(
             buyer_tenant_id=tenant_id,
@@ -139,6 +154,15 @@ def purchase_listing(
             reference_id=purchase.id,
             metadata_json={"listing_id": listing.id, "publisher_id": publisher.id},
         ))
+        if publisher_credits:
+            db.add(WalletLedger(
+                tenant_id=publisher.tenant_id,
+                kind="marketplace_earning",
+                amount=publisher_credits,
+                reference_type="marketplace_sale",
+                reference_id=purchase.id,
+                metadata_json={"listing_id": listing.id, "buyer_tenant_id": tenant_id},
+            ))
         db.execute(
             pg_insert(PrivateSkillGrant)
             .values(
