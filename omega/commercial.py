@@ -60,7 +60,7 @@ def set_control(
         row.allowed_agents = sorted(set(allowed_agents))
         row.allowed_skills = sorted(set(allowed_skills))
         row.audit_retention_days = audit_retention_days
-        row.version += 1
+        row.version = int(row.version or 0) + 1
     return get_control(tenant_id)
 
 def set_subscription(
