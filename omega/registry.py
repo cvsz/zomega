@@ -74,6 +74,7 @@ def publish_skill(
             manifest_json=manifest,
             manifest_sha256=digest,
             signature_b64=signature_b64,
+            publisher_public_key_pem=publisher.ed25519_public_key_pem,
             status="active",
         )
         db.add(row)
@@ -84,6 +85,23 @@ def publish_skill(
         {"skill_id": skill_id, "version": version, "manifest_sha256": digest},
     )
     return {"id": version_id, "skill_id": skill_id, "version": version, "manifest_sha256": digest, "status": "active"}
+
+def verify_skill_version(skill_version_id: str) -> dict:
+    with session_scope() as db:
+        skill = db.get(PrivateSkillVersion, skill_version_id)
+        if not skill:
+            raise HTTPException(404, "Private skill version not found")
+        body = canonical_manifest(skill.manifest_json)
+        digest = hashlib.sha256(body).hexdigest()
+        if digest != skill.manifest_sha256:
+            return {"id": skill.id, "valid": False, "reason": "manifest_hash_mismatch"}
+        try:
+            signature = base64.b64decode(skill.signature_b64, validate=True)
+            key = _verify_public_key(skill.publisher_public_key_pem)
+            key.verify(signature, body)
+        except (InvalidSignature, ValueError, HTTPException):
+            return {"id": skill.id, "valid": False, "reason": "signature_invalid"}
+        return {"id": skill.id, "valid": True, "manifest_sha256": digest}
 
 def list_granted_skills(tenant_id: str) -> list[dict]:
     with session_scope() as db:
