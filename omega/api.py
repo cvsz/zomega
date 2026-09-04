@@ -30,7 +30,8 @@ from .audit import list_audit_events
 from .platform import get_control_plane, admin_set_plan, PLAN_CATALOG
 from .org_service import (
     create_organization, list_organizations, add_member, list_members,
-    create_service_account, disable_service_account,
+    update_member_role, remove_member,
+    create_service_account, disable_service_account, list_service_accounts,
 )
 from .private_skills import register_private_skill, list_private_skills, set_private_skill_status
 from .marketplace import (
@@ -419,3 +420,36 @@ def marketplace_licenses(tenant=Depends(require_marketplace_read)):
 @app.get("/v1/marketplace/balance")
 def marketplace_publisher_balance(tenant=Depends(require_marketplace_read)):
     return marketplace_balance(tenant["id"])
+
+
+@app.put("/v1/organizations/{organization_id}/members/{member_id}")
+def organization_member_role_update(
+    organization_id: str,
+    member_id: str,
+    body: OrganizationMemberBody,
+    tenant=Depends(require_orgs_write),
+):
+    return update_member_role(
+        tenant["id"],
+        tenant["api_key_id"],
+        organization_id,
+        member_id,
+        body.role,
+    )
+
+@app.delete("/v1/organizations/{organization_id}/members/{member_id}")
+def organization_member_remove(
+    organization_id: str,
+    member_id: str,
+    tenant=Depends(require_orgs_write),
+):
+    return remove_member(
+        tenant["id"],
+        tenant["api_key_id"],
+        organization_id,
+        member_id,
+    )
+
+@app.get("/v1/service-accounts")
+def service_accounts_list(tenant=Depends(require_orgs_read)):
+    return list_service_accounts(tenant["id"])
