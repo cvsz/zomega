@@ -18,7 +18,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: migrate
-          image: ghcr.io/cvsz/zomega:2.1.0
+          image: ghcr.io/cvsz/zomega:3.0.0
           command: ["alembic","upgrade","head"]
           envFrom: [{secretRef: {name: omega-runtime}}]
           securityContext:

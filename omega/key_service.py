@@ -17,6 +17,30 @@ ALLOWED_SCOPES = {
     "keys:read",
     "keys:write",
     "audit:read",
+    "dashboard:read",
+    "subscription:read",
+    "registry:read",
+    "registry:write",
+    "marketplace:read",
+    "marketplace:write",
+}
+
+ROLE_SCOPES = {
+    "reader": {
+        "billing:read", "runs:read", "audit:read", "dashboard:read",
+        "subscription:read", "registry:read", "marketplace:read",
+    },
+    "operator": {
+        "agents:run", "skills:run", "runs:read", "runs:cancel", "dashboard:read",
+    },
+    "billing": {
+        "billing:read", "billing:write", "subscription:read", "dashboard:read",
+    },
+    "publisher": {
+        "registry:read", "registry:write", "marketplace:read", "marketplace:write",
+        "dashboard:read",
+    },
+    "tenant-admin": set(ALLOWED_SCOPES),
 }
 
 def list_api_keys(tenant_id: str) -> list[dict]:
@@ -29,6 +53,8 @@ def list_api_keys(tenant_id: str) -> list[dict]:
         return [{
             "id": row.id,
             "name": row.name,
+            "key_type": row.key_type,
+            "role": row.role,
             "prefix": row.key_prefix,
             "scopes": list(row.scopes),
             "active": row.active,
@@ -40,10 +66,25 @@ def create_api_key(
     tenant_id: str,
     actor_key_id: str,
     name: str,
-    scopes: list[str],
+    scopes: list[str] | None = None,
     expires_at: datetime | None = None,
+    *,
+    key_type: str = "api_key",
+    role: str | None = None,
 ) -> dict:
-    normalized = sorted(set(scopes))
+    if key_type not in {"api_key", "service_account"}:
+        raise HTTPException(400, "Invalid key_type")
+    if role is not None:
+        if role not in ROLE_SCOPES:
+            raise HTTPException(400, f"Unknown role: {role}")
+        role_scopes = ROLE_SCOPES[role]
+        requested = set(scopes or role_scopes)
+        if not requested.issubset(role_scopes):
+            raise HTTPException(400, "Requested scopes exceed role policy")
+        normalized = sorted(requested)
+    else:
+        normalized = sorted(set(scopes or []))
+
     if not normalized:
         raise HTTPException(400, "At least one scope is required")
     unknown = set(normalized) - ALLOWED_SCOPES
@@ -58,6 +99,8 @@ def create_api_key(
         key = ApiKey(
             tenant_id=tenant_id,
             name=name,
+            key_type=key_type,
+            role=role,
             key_prefix=prefix,
             key_digest=hash_api_key_secret(secret),
             scopes=normalized,
@@ -72,19 +115,43 @@ def create_api_key(
         tenant_id=tenant_id,
         actor_type="api_key",
         actor_id=actor_key_id,
-        action="api_key.created",
-        target_type="api_key",
+        action=f"{key_type}.created",
+        target_type=key_type,
         target_id=key_id,
-        metadata={"name": name, "scopes": normalized, "expires_at": expires_at.isoformat() if expires_at else None},
+        metadata={
+            "name": name,
+            "role": role,
+            "scopes": normalized,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        },
     )
     return {
         "id": key_id,
         "name": name,
+        "key_type": key_type,
+        "role": role,
         "api_key": raw,
         "scopes": normalized,
         "expires_at": expires_at,
-        "warning": "This API key is returned once. Store it securely.",
+        "warning": "This secret is returned once. Store it securely.",
     }
+
+def create_service_account(
+    tenant_id: str,
+    actor_key_id: str,
+    name: str,
+    role: str,
+    expires_at: datetime | None = None,
+) -> dict:
+    return create_api_key(
+        tenant_id,
+        actor_key_id,
+        name,
+        scopes=None,
+        expires_at=expires_at,
+        key_type="service_account",
+        role=role,
+    )
 
 def revoke_api_key(tenant_id: str, actor_key_id: str, key_id: str) -> dict:
     if key_id == actor_key_id:
@@ -99,13 +166,14 @@ def revoke_api_key(tenant_id: str, actor_key_id: str, key_id: str) -> dict:
             raise HTTPException(404, "API key not found")
         key.active = False
         name = key.name
+        key_type = key.key_type
 
     record_audit(
         tenant_id=tenant_id,
         actor_type="api_key",
         actor_id=actor_key_id,
-        action="api_key.revoked",
-        target_type="api_key",
+        action=f"{key_type}.revoked",
+        target_type=key_type,
         target_id=key_id,
         metadata={"name": name},
     )

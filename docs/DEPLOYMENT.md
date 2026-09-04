@@ -1,4 +1,4 @@
-# Production Deployment — OMEGA 2.1
+# Production Deployment — OMEGA 3.0
 
 ## Required runtime secrets
 
@@ -14,12 +14,12 @@
 - STRIPE_PRICE_CREDITS_20000
 - OMEGA_PUBLIC_URL
 
-Inject secrets at runtime through GitHub Environment Secrets plus your Kubernetes secret manager
-(External Secrets, Vault, SOPS, or an equivalent). Never bake credentials into the image.
+Inject runtime values through GitHub Environment Secrets plus a Kubernetes secret manager such as
+External Secrets, Vault, or SOPS. Never bake credentials into the image.
 
 ## Database migration
 
-OMEGA 2.1 freezes migration `0001` and applies additive reliability changes in `0002`.
+The current Alembic head is `0008`.
 
 For direct deployments:
 
@@ -27,34 +27,50 @@ For direct deployments:
 alembic upgrade head
 ```
 
-The Helm chart runs `alembic upgrade head` as a pre-install/pre-upgrade hook before API and worker
-rollout. If the migration fails, Helm does not start the new application version.
+The Helm chart runs `alembic upgrade head` as a pre-install/pre-upgrade hook. The new API/worker
+version is not rolled out if migration fails.
 
-## Containers
+OMEGA CI also proves a data-bearing upgrade path from the 2.2 schema at `0005` to the 3.0 head,
+including expansion of existing primary-key scopes.
 
-Run at least:
+## Runtime processes
 
 ```bash
 omega serve
 arq omega.jobs.WorkerSettings
 ```
 
-The worker owns normal run execution plus outbox dispatch, reservation reaping, and wallet
-reconciliation cron jobs.
+The worker owns execution plus outbox dispatch, reservation reaping, wallet reconciliation, and
+audit-retention pruning.
 
 ## Kubernetes / Helm
 
-Provision the `omega-runtime` Secret first, then:
+Provision the `omega-runtime` Secret, then deploy an immutable commit-SHA image:
 
 ```bash
-helm upgrade --install omega deploy/helm/omega   --namespace omega   --create-namespace   --set image.repository=ghcr.io/cvsz/zomega   --set image.tag=<immutable-commit-sha>   --atomic   --wait
+helm upgrade --install omega deploy/helm/omega \
+  --namespace omega \
+  --create-namespace \
+  --set image.repository=ghcr.io/cvsz/zomega \
+  --set image.tag=<immutable-commit-sha> \
+  --atomic \
+  --wait
 ```
 
-The production GitHub workflow verifies the GHCR attestation before running this deployment.
+The production GitHub workflow verifies the GHCR build attestation before deployment.
+
+OMEGA 3.0 includes:
+
+- two API replicas by default
+- two worker replicas by default
+- soft topology spread across Kubernetes nodes
+- PodDisruptionBudgets with at least one API and one worker available
+- non-root/read-only/seccomp/capability-drop security contexts
+- default-deny NetworkPolicy with explicit runtime egress
 
 ## Required GitHub production environment
 
-Create environment `production` with:
+Environment: `production`
 
 Secret:
 - `KUBECONFIG_B64`
@@ -62,20 +78,18 @@ Secret:
 Variable:
 - `OMEGA_HEALTH_URL`
 
-Recommended environment protection:
+Recommended protection:
 - required reviewer
-- deployment branch/tag restrictions
+- deployment branch/tag restriction
 - prevent self-review where supported
 
-Repository rules should require CI, CodeQL, dependency review, and security checks before merge.
+## Disaster recovery
 
-## Network policy
+For the manual DR drill workflow configure separate secrets:
 
-OMEGA defaults to deny. API/worker/migration pods receive only:
-- DNS egress
-- TCP 443 for external APIs
-- TCP 5432 for PostgreSQL
-- TCP 6379 for Redis
-- API ingress on port 8000
+- `DR_SOURCE_DATABASE_URL`
+- `DR_RESTORE_DATABASE_URL`
 
-If your infrastructure uses different ports or a service mesh, adjust policy explicitly before deploy.
+The restore database must be dedicated/disposable and must never be the production source DB.
+
+See `docs/DISASTER_RECOVERY.md`.

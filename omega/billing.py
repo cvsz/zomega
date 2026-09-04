@@ -144,7 +144,7 @@ def reconcile_wallet(tenant_id: str) -> dict:
         ledger_net = db.execute(
             select(func.coalesce(func.sum(WalletLedger.amount), 0)).where(
                 WalletLedger.tenant_id == tenant_id,
-                WalletLedger.kind.in_(["credit", "charge"]),
+                WalletLedger.kind.in_(["credit", "charge", "marketplace_charge", "marketplace_earning"]),
             )
         ).scalar_one()
         observed_total = wallet.available_credits + wallet.reserved_credits

@@ -1,168 +1,173 @@
-# OMEGA Production 2.2
+# OMEGA Production 3.0
 
-OMEGA is a paid-before-use, multi-tenant Agents + Skills API with 12 specialized Agents and 100 billable Skills.
+OMEGA is a paid-before-use, multi-tenant Agents + Skills platform with 12 specialized Agents and 100 billable Skills.
 
-OMEGA 2.2 adds a self-service tenant control plane on top of the 2.1 transactional reliability baseline:
-API-key lifecycle management, immutable audit events, Argon2id API-key storage, Ruff/mypy gates,
-PostgreSQL/Redis control-plane integration tests, and live API smoke verification.
+OMEGA 3.0 completes the source-side commercial and enterprise baseline on top of the transactional
+billing and control-plane foundations from 2.x.
 
-## Paid-before-use invariant
+## Core invariants
 
 ```text
-API key
-→ tenant + scope + entitlement
-→ rate limit
+API key / service account
+→ tenant + role/scope + entitlement
+→ rate limit + tenant quota policy
 → transactional run + wallet reservation + ledger + outbox
 → Redis dispatch
-→ worker checkpoint
+→ retry-safe worker checkpoint
 → OpenAI Responses API
 → meter
 → settle / refund
-→ evidence
+→ evidence + audit + reconciliation
 ```
 
-No billable run is dispatched unless its credit reservation committed successfully.
+No billable run is dispatched unless its reservation and durable queue intent commit successfully.
 
-## API-key model
+## OMEGA 3.0 capabilities
 
-OMEGA API keys use:
+- Argon2id API keys with indexed public locators
+- tenant self-service API-key lifecycle
+- service accounts with RBAC presets
+- immutable tenant audit log + NDJSON export + retention
+- tenant monthly run and credit caps enforced inside PostgreSQL admission transactions
+- per-tenant allowed Agent/Skill policy
+- subscription/plan administration behind the platform admin token
+- usage/dashboard API
+- Ed25519 publisher identity and signed private-skill manifests
+- signer-key snapshots for historical signature verification
+- private-skill entitlement grants
+- marketplace listings and idempotent purchases
+- atomic buyer debit + publisher revenue-share credit
+- marketplace-aware wallet reconciliation
+- checksummed PostgreSQL backup evidence
+- isolated restore verification
+- Kubernetes topology spread + PodDisruptionBudgets
+- immutable GHCR releases + provenance attestation
 
-```text
-omega_<24-hex-public-locator>_<secret>
-```
+## Service accounts and RBAC
 
-The locator is indexed for O(1) lookup. The secret is stored only as Argon2id(secret + server pepper).
-
-Generate a key without printing it:
-
-```bash
-omega generate-api-key --output ./tenant.key
-chmod 600 ./tenant.key
-```
-
-Create the first tenant:
-
-```bash
-docker compose exec api omega create-tenant --name "First Tenant" --plan pro
-```
-
-The command accepts and confirms the key via hidden terminal input.
-
-## Tenant API-key lifecycle
-
-Primary tenant keys include:
-
-- `keys:read`
-- `keys:write`
-- `audit:read`
-
-List keys:
+Primary tenant keys can create scoped service accounts:
 
 ```http
-GET /v1/api-keys
+POST /v1/service-accounts
+Authorization: Bearer omega_...
+Content-Type: application/json
+
+{"name":"automation","role":"operator"}
+```
+
+Roles:
+
+- `reader`: read-only billing/run/audit/dashboard/catalog-related controls
+- `operator`: run/cancel Agent and Skill workloads
+- `billing`: billing and subscription visibility/write operations
+- `publisher`: private registry and marketplace publishing
+- `tenant-admin`: all tenant-level scopes
+
+A role cannot request scopes outside its preset.
+
+## Commercial control plane
+
+Tenant dashboard:
+
+```http
+GET /v1/dashboard
 Authorization: Bearer omega_...
 ```
 
-Create a secondary key:
+Platform-admin quota policy:
 
 ```http
-POST /v1/api-keys
-Authorization: Bearer omega_...
+PUT /v1/admin/tenants/{tenant_id}/control
+X-OMEGA-Admin-Token: ...
 Content-Type: application/json
 
 {
-  "name": "worker",
-  "scopes": ["skills:run", "runs:read"]
+  "monthly_credit_limit": 50000,
+  "monthly_run_limit": 2000,
+  "allowed_agents": [],
+  "allowed_skills": [],
+  "audit_retention_days": 365
 }
 ```
 
-The raw secret is returned exactly once. Listing keys never returns the secret.
+Quota enforcement runs inside the same PostgreSQL transaction that admits the run, using an advisory
+lock scoped to tenant + month.
 
-Revoke a secondary key:
+## Signed private skills
+
+Publishers register an Ed25519 public key and submit canonical JSON manifests signed with the matching
+private key. OMEGA stores the manifest hash, signature, and signer public-key snapshot.
 
 ```http
-DELETE /v1/api-keys/{key_id}
+POST /v1/private-skills
 Authorization: Bearer omega_...
 ```
 
-OMEGA refuses to revoke the currently authenticated key through this endpoint.
-
-## Audit log
+Verify a stored version:
 
 ```http
-GET /v1/audit?limit=100
+GET /v1/private-skills/{skill_version_id}/verify
 Authorization: Bearer omega_...
 ```
 
-API-key creation and revocation generate tenant-scoped audit events containing identifiers and
-metadata only; secrets are never recorded.
+## Marketplace
 
-## Required services
+A publisher can list a signed private skill. A buyer purchase uses `Idempotency-Key` and commits in
+one transaction:
 
-- PostgreSQL
-- Redis
-- Stripe account with three server-owned Price IDs
-- OpenAI API key
-- HTTPS public URL
+```text
+buyer wallet debit
++ buyer financial ledger
++ publisher wallet credit
++ publisher financial ledger
++ marketplace revenue split ledger
++ private-skill grant
+```
 
-## Boot
+Platform revenue remains explicitly recorded in the marketplace ledger.
+
+## Backup and disaster recovery
+
+Create a backup:
 
 ```bash
-cp .env.example .env
-docker compose up --build -d
-docker compose exec api alembic upgrade head
+make backup
 ```
 
-## Credit packages
+The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manifest.
 
-```http
-GET /v1/billing/packages
-```
-
-```http
-POST /v1/checkout
-Authorization: Bearer omega_...
-Content-Type: application/json
-
-{"package_id":"credits_1000"}
-```
-
-Credits are granted only from a verified Stripe-signed paid Checkout webhook. Payment event
-recording and wallet crediting commit atomically in PostgreSQL.
-
-## Run execution
-
-```http
-POST /v1/skills/repository-intelligence/runs
-Authorization: Bearer omega_...
-Idempotency-Key: operation-123
-Content-Type: application/json
-
-{"input":{"repository":"owner/project"}}
-```
-
-```http
-POST /v1/agents/omega-security/runs
-Authorization: Bearer omega_...
-Idempotency-Key: security-run-123
-Content-Type: application/json
-
-{"input":{"objective":"Audit the supplied repository"},"max_spend_credits":500}
-```
-
-## Production validation
+Restore verification requires a dedicated disposable restore database:
 
 ```bash
-./verify.sh
+OMEGA_BACKUP_FILE=backups/omega-....dump \
+OMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../omega_restore \
+make restore-verify
 ```
 
-CI additionally runs:
+The script refuses to restore into `OMEGA_SOURCE_DATABASE_URL` when supplied.
 
-- Python compilation
-- unit tests
-- Ruff correctness lint
-- mypy checks for the security/control-plane modules
-- PostgreSQL + Redis migrations
-- billing/queue/control-plane integration tests
-- live FastAPI health and catalog smoke tests
-- CodeQL, dependency review, pip-audit, Bandit, Trivy, and SBOM generation
+GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
+`DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
+
+## Validation
+
+```bash
+make lint
+make typecheck
+make test
+make verify
+```
+
+CI additionally proves:
+
+- fresh migration through Alembic head `0008`
+- OMEGA 2.2 → 3.0 primary-key scope upgrade compatibility
+- PostgreSQL/Redis billing, control-plane, quota, registry, marketplace integration
+- Ed25519 signature verification
+- marketplace buyer and publisher reconciliation
+- API health/catalog smoke test
+- migration downgrade/upgrade round trip
+- CodeQL, dependency review, pip-audit, Bandit, Trivy and SBOM gates
+
+See `docs/COMMERCIAL.md`, `docs/PRIVATE_REGISTRY.md`, `docs/DISASTER_RECOVERY.md`, and
+`docs/ARCHITECTURE.md`.

@@ -9,6 +9,7 @@ from .billing import settle_run, refund_run, reconcile_wallet
 from .evidence import record
 from .security import utcnow
 from .outbox import dispatch_pending
+from .commercial import prune_audit_events
 
 class AmbiguousProviderState(RuntimeError):
     pass
@@ -252,6 +253,11 @@ async def wallet_reconciler(ctx):
         if not result["ok"]:
             print({"event": "wallet.reconciliation_failed", "tenant_id": tenant_id, "result": result})
 
+async def audit_retention_reaper(ctx):
+    deleted = prune_audit_events()
+    if deleted:
+        print({"event": "audit.retention_pruned", "deleted": deleted})
+
 async def startup(ctx):
     return
 
@@ -259,11 +265,12 @@ async def shutdown(ctx):
     return
 
 class WorkerSettings:
-    functions = [execute_run, outbox_dispatcher, reservation_reaper, wallet_reconciler]
+    functions = [execute_run, outbox_dispatcher, reservation_reaper, wallet_reconciler, audit_retention_reaper]
     cron_jobs = [
         cron(outbox_dispatcher, second={0, 15, 30, 45}),
         cron(reservation_reaper, minute={0, 10, 20, 30, 40, 50}),
         cron(wallet_reconciler, hour={0, 6, 12, 18}, minute=5),
+        cron(audit_retention_reaper, hour=2, minute=35),
     ]
     on_startup = startup
     on_shutdown = shutdown

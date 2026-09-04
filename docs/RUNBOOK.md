@@ -1,48 +1,97 @@
-# Runbook — OMEGA 2.1
+# Runbook — OMEGA 3.0
 
 ## Redis unavailable during run creation
 
 Expected state: `PENDING_DISPATCH`.
 
-1. Do not create another run with a different idempotency key.
+1. Do not create a second run with a different idempotency key.
 2. Restore Redis.
-3. Confirm the outbox dispatcher moves the run to `QUEUED`.
-4. Verify exactly one reservation exists.
+3. Confirm outbox dispatch changes the run to `QUEUED`.
+4. Verify exactly one open reservation exists.
 
 ## Ambiguous provider state
 
-OMEGA sets `BLOCKED / AMBIGUOUS_PROVIDER_STATE` and refuses automatic provider re-execution.
+OMEGA sets `BLOCKED / AMBIGUOUS_PROVIDER_STATE` instead of automatically repeating a possibly
+billable provider request.
 
-1. Inspect the run evidence and `skill_executions`.
-2. Check the provider dashboard/logs for the attempted response.
-3. If no billable completion occurred:
-   `omega reconcile-run --run-id <id> --action refund`
-4. If billable work occurred, determine the defensible charge:
-   `omega reconcile-run --run-id <id> --action settle --charge <credits>`
-5. Record incident evidence and root cause.
+Use:
+
+```bash
+omega reconcile-run --run-id <id> --action refund
+omega reconcile-run --run-id <id> --action settle --charge <credits>
+```
+
+after provider evidence has been reviewed.
+
+## Tenant quota denial
+
+A `MONTHLY_RUN_LIMIT_EXCEEDED` or `MONTHLY_CREDIT_LIMIT_EXCEEDED` response is an admission denial,
+not a worker failure.
+
+Review:
+
+- tenant control
+- current UTC-month run count
+- settled charges
+- marketplace charges
+- open reservations
+
+Change limits only through the admin-token protected control route.
+
+## Marketplace mismatch
+
+1. Freeze marketplace mutation for the affected tenant if accounting is uncertain.
+2. Reconcile buyer and publisher wallets.
+3. Compare `marketplace_ledger`, `wallet_ledger`, and `private_skill_grants`.
+4. Confirm exactly one purchase row for the buyer idempotency key.
+5. Never edit wallet columns directly.
+
+## Private-skill signature failure
+
+1. Do not grant or list the version as trusted.
+2. Verify canonical manifest bytes and stored SHA-256 content digest.
+3. Verify against the signer public-key snapshot stored with that exact version.
+4. If the publisher rotated keys, do not substitute the new profile key for historical verification.
 
 ## Payment mismatch
 
-1. Freeze the affected tenant if money integrity is uncertain.
-2. Run `omega reconcile-wallet --tenant-id <id>`.
-3. Compare Stripe event ID, `payment_events`, wallet ledger, and wallet balance.
-4. Never edit wallet columns directly.
-5. Correct money only through an audited reconciliation procedure.
-
-## Duplicate Stripe webhook
-
-Expected behavior: HTTP success with `duplicate=true`; no additional credit ledger entry.
+1. Freeze affected financial mutation if integrity is uncertain.
+2. Run wallet reconciliation.
+3. Compare Stripe event ID, payment event, wallet ledger, and wallet state.
+4. Correct through an audited procedure only.
 
 ## Expired reservation
 
-The reservation reaper refunds stale `PENDING_DISPATCH`, `QUEUED`, failed, or cancelled runs.
-A `BLOCKED` ambiguous provider state requires operator reconciliation and is not auto-refunded.
+The reservation reaper refunds stale non-running reservations. A blocked ambiguous provider state
+requires operator reconciliation.
 
-## Secret compromise
+## API/service-account compromise
 
-1. Revoke the exposed credential at the provider.
-2. Rotate the secret.
-3. Update the production secret manager.
-4. Roll API/worker pods.
-5. Verify readiness and provider connectivity.
-6. Review logs for misuse without exposing the secret value.
+1. Revoke the affected key.
+2. Create a new least-privilege key or service account.
+3. Review audit events for the compromised key ID.
+4. Rotate `OMEGA_API_KEY_PEPPER` only with a coordinated key-rotation plan because it invalidates
+   existing Argon2id verification material.
+
+## Production secret compromise
+
+1. Revoke the provider credential.
+2. Rotate it at the provider.
+3. Update the external secret manager.
+4. roll API/worker pods
+5. verify readiness and provider connectivity
+6. review logs/audit data without exposing replacement secrets
+
+## Disaster recovery
+
+Use only a dedicated restore database.
+
+```bash
+OMEGA_SOURCE_DATABASE_URL=... \
+OMEGA_BACKUP_FILE=backups/omega-....dump \
+OMEGA_RESTORE_VERIFY_DATABASE_URL=... \
+./restore-verify.sh
+```
+
+The script refuses an identical source/restore URL and verifies checksum, Alembic head, non-negative
+wallets, and reservation totals.

@@ -1,40 +1,39 @@
-# Operations — OMEGA 2.1
+# Operations — OMEGA 3.0
 
-## Continuous automated controls
+## Continuous controls
 
 The worker periodically:
 
 - retries pending outbox dispatch
-- reaps expired reservations that never started
-- reconciles active tenant wallet invariants
+- reaps stale non-running reservations
+- reconciles wallet invariants
+- prunes tenant audit events according to configured retention
 
-CI verifies deterministic migrations, PostgreSQL/Redis integration, duplicate payment handling,
-idempotent reservations, catalog secrecy, and the run state machine.
+CI verifies deterministic migrations, 2.2→3.0 upgrade compatibility, PostgreSQL/Redis commercial
+integration, API smoke behavior, CodeQL, dependency/SAST/container/IaC security, and SBOM output.
 
 ## Daily
 
-- inspect `FAIL`, `BLOCKED`, and `PARTIAL` runs
-- investigate `AMBIGUOUS_PROVIDER_STATE` before manual settlement/refund
+- inspect FAIL/BLOCKED/PARTIAL runs
+- inspect ambiguous provider states before settlement/refund
 - review wallet reconciliation alerts
 - compare Stripe paid events to OMEGA payment events
-- inspect outbox retry counts
-- inspect worker/API error rate and latency
+- inspect outbox retries
+- review tenant quota denials and marketplace purchases
+- review audit-retention and service-account activity
 
 ## Before release
 
-1. Back up PostgreSQL.
-2. Run CI and security gates.
-3. Apply migrations in staging.
-4. Exercise paid-event idempotency and run reservation.
-5. Deploy the immutable image to staging.
-6. Verify API/worker health and reconciliation.
-7. Approve the protected production environment.
-8. Deploy with Helm `--atomic --wait`.
+1. back up PostgreSQL
+2. run CI/security gates
+3. apply migrations in staging
+4. test paid event idempotency, quota admission, and marketplace settlement
+5. deploy immutable attested image to staging
+6. verify API/worker health and reconciliation
+7. approve protected production environment
+8. deploy Helm with `--atomic --wait`
 
-## After release
+## Disaster recovery
 
-- verify `/health/ready`
-- verify worker outbox dispatch
-- inspect billing settlement and reservation age
-- confirm no wallet reconciliation failures
-- confirm deployed image tag/digest
+Execute the gated DR drill against a dedicated restore database and retain workflow evidence.
+Never point the restore secret at the source database.

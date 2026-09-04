@@ -15,6 +15,12 @@ DEFAULT_SCOPES = [
     "keys:read",
     "keys:write",
     "audit:read",
+    "dashboard:read",
+    "subscription:read",
+    "registry:read",
+    "registry:write",
+    "marketplace:read",
+    "marketplace:write",
 ]
 
 def _validated_parts(raw_api_key: str) -> tuple[str, str]:

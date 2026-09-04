@@ -1,76 +1,99 @@
 # OMEGA Implementation Checklist
 
-## Repository identity
+## Repository/source identity
 
-- [x] Replace template identity and references with OMEGA / `zomega`.
-- [x] Align source release at version 2.2.0.
-- [x] Update changelog and roadmap.
-- [ ] Confirm repository description, topics, homepage, template status, license ownership, and year in GitHub settings.
+- [x] OMEGA / zomega repository identity
+- [x] source/API/Helm/Kubernetes release aligned at 3.0.0
+- [x] changelog, roadmap, architecture and runbooks maintained
+- [ ] confirm GitHub repository description/topics/homepage/license metadata in repository settings
 
-## Ownership and governance
+## Authentication / enterprise controls
 
-- [x] Configure `.github/CODEOWNERS`.
-- [x] Provide contribution, pull request, and code-of-conduct guidance.
-- [ ] Configure branch protection or repository rulesets in GitHub settings.
-- [ ] Require pull request review and passing status checks in GitHub settings.
+- [x] Argon2id API-key secrets with indexed public locators
+- [x] route-level scopes
+- [x] self-service API-key lifecycle
+- [x] service-account key type
+- [x] deterministic RBAC role presets
+- [x] role scope-escalation prevention
+- [x] constant-time platform admin-token authentication
+- [x] audit event retrieval/export/retention
 
-## Security
+## Billing / reliability
 
-- [x] Security policy and vulnerability-reporting guidance.
-- [x] Dependabot configuration, CodeQL, dependency review.
-- [x] pip-audit, Bandit, Trivy filesystem/container/IaC, SBOM.
-- [x] Least-privileged GitHub Actions permissions.
-- [x] Route-level API-key scopes.
-- [x] Argon2id API-key secret storage.
-- [x] Public catalog prompt/policy protection.
-- [x] Kubernetes/Helm workload hardening and default-deny networking.
-- [x] Tenant audit log for API-key mutations.
-- [ ] Enable Dependabot alerts/security updates, secret scanning, and push protection in GitHub settings.
+- [x] atomic Stripe event + wallet credit
+- [x] wallet locking and database constraints
+- [x] idempotency and transactional outbox
+- [x] retry-safe skill checkpoints
+- [x] budget-aware execution/cancellation
+- [x] reservation reaping and wallet reconciliation
+- [x] marketplace debit/earning reconciliation
 
-## Billing and reliability
+## Commercial SaaS controls
 
-- [x] Atomic Stripe event + wallet credit transaction.
-- [x] Duplicate-event race protection.
-- [x] PostgreSQL wallet row locking and financial constraints.
-- [x] Transactional outbox.
-- [x] Cross-replica idempotency.
-- [x] Retry-safe execution checkpoints.
-- [x] Budget-aware scheduling and cancellation.
-- [x] Reservation reaper and wallet reconciliation.
-- [x] Operator reconciliation for ambiguous provider states.
+- [x] monthly run cap
+- [x] monthly credit/spend cap
+- [x] Agent allowlist
+- [x] Skill allowlist
+- [x] subscription state
+- [x] plan administration
+- [x] usage/dashboard API
+- [x] upgrade migration for existing primary-key scopes
 
-## Control plane
+## Private registry / marketplace
 
-- [x] Tenant self-service API-key listing.
-- [x] Tenant self-service API-key creation.
-- [x] Tenant self-service API-key revocation.
-- [x] Explicit scope allowlist.
-- [x] Immutable tenant audit events.
-- [x] Audit event retrieval API.
+- [x] publisher profile
+- [x] Ed25519 public-key validation
+- [x] signed canonical manifest publishing
+- [x] signer-key snapshot
+- [x] stored signature verification
+- [x] private-skill entitlement grants
+- [x] marketplace listing
+- [x] idempotent marketplace purchase
+- [x] buyer wallet debit
+- [x] publisher wallet revenue-share settlement
+- [x] platform revenue accounting
 
-## Development and testing
+## Development / verification
 
-- [x] Python 3.12 and pinned runtime dependencies.
-- [x] Pinned Ruff and mypy development checks.
-- [x] Unit/catalog/state/security tests.
-- [x] PostgreSQL/Redis billing, queue, and control-plane integration tests.
-- [x] Live FastAPI smoke test.
-- [x] Production Dockerfile and safe `.env.example`.
+- [x] Python 3.12 pinned runtime
+- [x] Ruff and mypy gates
+- [x] unit/catalog/state/security tests
+- [x] PostgreSQL/Redis billing/control-plane/commercial integration
+- [x] Ed25519 registry integration
+- [x] marketplace reconciliation integration
+- [x] API smoke test
+- [x] migration round-trip
+- [x] OMEGA 2.2 → 3.0 upgrade test
+- [x] CodeQL/dependency review/pip-audit/Bandit/Trivy/SBOM workflows
 
-## CI/CD and release
+## Deployment / DR
 
-- [x] Compile/test/lint/type/catalog validation.
-- [x] PostgreSQL/Redis integration gates.
-- [x] Immutable GHCR commit-SHA images.
-- [x] Build provenance attestations.
-- [x] Deploy-time attestation verification.
-- [x] Alembic Helm pre-upgrade migration.
-- [x] Helm `--atomic --wait` and readiness verification.
-- [ ] Configure GitHub `production` environment, reviewers, `KUBECONFIG_B64`, and `OMEGA_HEALTH_URL`.
+- [x] immutable GHCR SHA image
+- [x] provenance attestation
+- [x] deploy-time attestation verification
+- [x] Helm pre-upgrade Alembic migration
+- [x] Helm atomic rollout
+- [x] topology spread
+- [x] PodDisruptionBudgets
+- [x] checksummed backup evidence
+- [x] isolated restore verification
+- [x] gated DR workflow
+- [ ] configure production GitHub environment and credentials
+- [ ] configure production PostgreSQL/Redis HA and backup storage
+- [ ] execute and retain first real production DR drill evidence
 
-## Final verification
+## GitHub account/repository controls
 
-- [ ] OMEGA 2.2 PR CI/Security/CodeQL/Dependency Review pass.
-- [x] Fresh PostgreSQL/Redis migration and integration bootstrap covered in CI.
-- [ ] Production GitHub environment configured.
-- [ ] Live Stripe/OpenAI credentials configured through secret management.
+- [ ] branch/ruleset protection
+- [ ] required PR reviews/checks
+- [ ] secret scanning/push protection
+- [ ] Dependabot security settings
+- [ ] production environment reviewers
+
+## Final evidence
+
+- [ ] OMEGA 3.0 PR CI/Security/CodeQL/Dependency Review pass
+- [x] fresh database bootstrap is covered by CI
+- [x] upgrade compatibility is covered by CI
+- [ ] live Stripe/OpenAI credentials configured through secret management
+- [ ] live production readiness endpoint verified

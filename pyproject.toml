@@ -1,6 +1,6 @@
 [project]
 name = "omega-production"
-version = "2.2.0"
+version = "3.0.0"
 description = "Production paid-before-use multi-agent skills platform"
 requires-python = ">=3.12"
 dependencies = [
@@ -20,7 +20,8 @@ dependencies = [
   "openai==1.107.0",
   "argon2-cffi==25.1.0",
   "httpx==0.28.1",
-  "python-json-logger==3.3.0"
+  "python-json-logger==3.3.0",
+  "cryptography==50.0.1"
 ]
 
 [project.scripts]

@@ -1,49 +1,57 @@
 # OMEGA Roadmap
 
-OMEGA 2.2 completes the source-side production control-plane baseline.
+OMEGA 3.0 completes the source-side commercial, marketplace, enterprise service-account, and
+application-layer disaster-recovery baseline.
 
-## Completed foundation
+## Completed source baseline
 
 - [x] 12 Agents and 100 Skills
-- [x] Tenant-scoped API-key authentication and per-route scopes
-- [x] Argon2id API-key storage with indexed public locators
-- [x] Tenant self-service API-key lifecycle
-- [x] Immutable tenant audit log
-- [x] PostgreSQL source of truth and deterministic Alembic migrations
-- [x] Atomic prepaid wallet, reservations, ledger, settlement, and refund
-- [x] Stripe Checkout with server-owned credit packages and signed webhook fulfillment
-- [x] Transactional outbox and Redis/ARQ delivery
-- [x] Retry-safe skill checkpoints and ambiguous-provider fail-safe
-- [x] Budget-aware execution and cancellation
-- [x] Reservation reaper and wallet reconciliation
-- [x] OpenAI Responses API execution
-- [x] Sanitized public catalog
-- [x] PostgreSQL/Redis billing and control-plane integration tests
-- [x] Live API smoke test
-- [x] Ruff/mypy correctness gates
-- [x] SAST, dependency, container, secret, IaC, and SBOM security gates
-- [x] Immutable GHCR publishing with provenance attestation
-- [x] Helm migration hook, atomic deployment, readiness verification
-- [x] Architecture ADRs
+- [x] paid-before-use billing and transactional wallet ledger
+- [x] Stripe signed webhook fulfillment
+- [x] transactional outbox and retry-safe execution
+- [x] cancellation, reservation reaping, reconciliation
+- [x] Argon2id API keys and tenant-scoped permissions
+- [x] service accounts with RBAC presets
+- [x] immutable audit log, export, and retention
+- [x] tenant quota/admission policy
+- [x] plan/subscription administration
+- [x] usage/dashboard API
+- [x] Ed25519 private-skill registry
+- [x] private-skill entitlement grants
+- [x] marketplace listing/purchase/revenue-share settlement
+- [x] marketplace-aware financial reconciliation
+- [x] PostgreSQL/Redis integration tests
+- [x] OMEGA 2.2 → 3.0 migration compatibility test
+- [x] CodeQL/SAST/dependency/container/IaC/SBOM gates
+- [x] immutable GHCR provenance
+- [x] Helm atomic migration/deployment
+- [x] app topology spread and PodDisruptionBudgets
+- [x] checksummed backup and restore-verification tooling
+- [x] gated DR drill workflow
 
-## Operator configuration remaining
+## Operator / infrastructure configuration remaining
 
-These are repository/account settings or external credentials rather than missing source implementation:
+These cannot be completed by repository source alone:
 
-- [ ] GitHub repository ruleset / branch protection
+- [ ] GitHub main-branch ruleset / required reviews / required checks
+- [ ] GitHub secret scanning and push protection
 - [ ] GitHub production environment approvals
-- [ ] Dependabot alerts/security updates and secret push protection
-- [ ] Production Kubernetes credentials
-- [ ] Production Stripe Price IDs/webhook secret
-- [ ] Production OpenAI API key
-- [ ] Production DNS/TLS and external readiness URL
+- [ ] `KUBECONFIG_B64` and `OMEGA_HEALTH_URL`
+- [ ] dedicated `DR_SOURCE_DATABASE_URL` and `DR_RESTORE_DATABASE_URL`
+- [ ] production PostgreSQL HA / replicas / backups storage
+- [ ] production Redis HA
+- [ ] production Stripe Price IDs and webhook secret
+- [ ] production OpenAI API key
+- [ ] DNS, TLS, ingress and external readiness endpoint
+- [ ] external secret manager / rotation process
+- [ ] multi-region database replication and traffic failover
 
-## Next product layer
+## Optional future product surfaces
 
-- plan/subscription administration
-- customer usage dashboard
-- publisher-signed private skill catalog
-- marketplace and revenue-share accounting
-- multi-region disaster recovery
+- browser customer dashboard UI over the existing dashboard/control-plane APIs
+- external OIDC/SSO identity provider integration for human users
+- publisher fiat payout integration from marketplace accounting
+- multi-region control plane once database/Redis infrastructure is provisioned
 
-Every future capability must preserve tenant isolation, billing correctness, retry safety, and fail-closed security behavior.
+Every extension must preserve tenant isolation, ledger correctness, idempotency, signature integrity,
+retry safety, and fail-closed authorization.

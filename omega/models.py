@@ -28,6 +28,8 @@ class ApiKey(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    key_type: Mapped[str] = mapped_column(String(30), nullable=False, default="api_key")
+    role: Mapped[str | None] = mapped_column(String(40))
     key_prefix: Mapped[str | None] = mapped_column(String(24), nullable=True, unique=True, index=True)
     key_digest: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     scopes: Mapped[list] = mapped_column(JSON, nullable=False)
@@ -184,4 +186,102 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         Index("ix_audit_tenant_created", "tenant_id", "created_at"),
+    )
+
+
+class TenantControl(Base):
+    __tablename__ = "tenant_controls"
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True)
+    monthly_credit_limit: Mapped[int | None] = mapped_column(BigInteger)
+    monthly_run_limit: Mapped[int | None] = mapped_column(BigInteger)
+    allowed_agents: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    allowed_skills: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    audit_retention_days: Mapped[int] = mapped_column(BigInteger, nullable=False, default=365)
+    version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("monthly_credit_limit IS NULL OR monthly_credit_limit > 0", name="ck_control_credit_limit_positive"),
+        CheckConstraint("monthly_run_limit IS NULL OR monthly_run_limit > 0", name="ck_control_run_limit_positive"),
+        CheckConstraint("audit_retention_days >= 30", name="ck_control_audit_retention_min"),
+    )
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
+    provider_subscription_id: Mapped[str | None] = mapped_column(String(150), unique=True)
+    plan: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    current_period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class Publisher(Base):
+    __tablename__ = "publishers"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    ed25519_public_key_pem: Mapped[str] = mapped_column(String(4096), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class PrivateSkillVersion(Base):
+    __tablename__ = "private_skill_versions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    publisher_id: Mapped[str] = mapped_column(ForeignKey("publishers.id", ondelete="CASCADE"), index=True)
+    skill_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    version: Mapped[str] = mapped_column(String(80), nullable=False)
+    manifest_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    manifest_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    signature_b64: Mapped[str] = mapped_column(String(512), nullable=False)
+    publisher_public_key_pem: Mapped[str] = mapped_column(String(4096), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("publisher_id", "skill_id", "version", name="uq_private_skill_publisher_version"),
+    )
+
+class PrivateSkillGrant(Base):
+    __tablename__ = "private_skill_grants"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    skill_version_id: Mapped[str] = mapped_column(ForeignKey("private_skill_versions.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "skill_version_id", name="uq_private_skill_grant"),
+    )
+
+class MarketplaceListing(Base):
+    __tablename__ = "marketplace_listings"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    skill_version_id: Mapped[str] = mapped_column(ForeignKey("private_skill_versions.id", ondelete="CASCADE"), unique=True, index=True)
+    price_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    publisher_share_bps: Mapped[int] = mapped_column(BigInteger, nullable=False, default=8000)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("price_credits > 0", name="ck_marketplace_price_positive"),
+        CheckConstraint("publisher_share_bps >= 0 AND publisher_share_bps <= 10000", name="ck_marketplace_share_bps"),
+    )
+
+class MarketplaceLedger(Base):
+    __tablename__ = "marketplace_ledger"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    buyer_tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    publisher_id: Mapped[str] = mapped_column(ForeignKey("publishers.id", ondelete="CASCADE"), index=True)
+    listing_id: Mapped[str] = mapped_column(ForeignKey("marketplace_listings.id", ondelete="CASCADE"), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    gross_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    publisher_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    platform_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="settled")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("buyer_tenant_id", "idempotency_key", name="uq_marketplace_buyer_idempotency"),
+        CheckConstraint("gross_credits > 0", name="ck_marketplace_gross_positive"),
+        CheckConstraint("publisher_credits >= 0", name="ck_marketplace_publisher_nonnegative"),
+        CheckConstraint("platform_credits >= 0", name="ck_marketplace_platform_nonnegative"),
     )

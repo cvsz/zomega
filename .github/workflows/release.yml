@@ -26,7 +26,7 @@ jobs:
         run: |
           python -m compileall -q omega tests migrations
           ruff check omega tests
-          mypy omega/security.py omega/audit.py omega/key_service.py
+          mypy omega/security.py omega/audit.py omega/key_service.py omega/commercial.py omega/registry.py omega/marketplace.py
           python -m unittest discover -s tests -v
       - name: Login to GHCR
         uses: docker/login-action@v3
