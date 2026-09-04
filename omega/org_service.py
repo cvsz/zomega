@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from .audit import record_audit
 from .db import session_scope
-from .key_service import create_api_key, revoke_api_key
+from .key_service import create_api_key_record, revoke_api_key
 from .models import Organization, OrganizationMember, ServiceAccount
 
 ROLES = {"owner", "admin", "developer", "viewer", "billing"}
@@ -78,25 +78,35 @@ def create_service_account(
             if not org:
                 raise HTTPException(404, "Organization not found")
 
-    created = create_api_key(
-        tenant_id=tenant_id,
-        actor_key_id=actor_key_id,
-        name=f"svc:{name}",
-        scopes=ROLE_SCOPES[role],
-    )
     with session_scope() as db:
+        key, raw = create_api_key_record(
+            db,
+            tenant_id=tenant_id,
+            name=f"svc:{name}",
+            scopes=ROLE_SCOPES[role],
+        )
         sa = ServiceAccount(
             tenant_id=tenant_id,
             organization_id=org_id,
-            api_key_id=created["id"],
+            api_key_id=key.id,
             name=name,
             status="active",
         )
         db.add(sa)
         db.flush()
         service_account_id = sa.id
-    record_audit(tenant_id, "api_key", actor_key_id, "service_account.created", "service_account", service_account_id, {"organization_id": org_id, "role": role})
-    return {**created, "service_account_id": service_account_id, "organization_id": org_id, "role": role}
+        key_id = key.id
+        scopes = list(key.scopes)
+    record_audit(tenant_id, "api_key", actor_key_id, "service_account.created", "service_account", service_account_id, {"organization_id": org_id, "role": role, "api_key_id": key_id})
+    return {
+        "service_account_id": service_account_id,
+        "organization_id": org_id,
+        "role": role,
+        "id": key_id,
+        "api_key": raw,
+        "scopes": scopes,
+        "warning": "This service-account API key is returned once. Store it securely.",
+    }
 
 def disable_service_account(tenant_id: str, actor_key_id: str, service_account_id: str) -> dict:
     with session_scope() as db:
