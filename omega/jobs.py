@@ -9,6 +9,7 @@ from .billing import settle_run, refund_run, reconcile_wallet
 from .evidence import record
 from .security import utcnow
 from .outbox import dispatch_pending
+from .platform import aggregate_usage
 
 class AmbiguousProviderState(RuntimeError):
     pass
@@ -242,6 +243,9 @@ async def reservation_reaper(ctx):
                 run.finished_at = utcnow()
         record(run_id, "reservation.reaped", {})
 
+async def usage_aggregator(ctx):
+    aggregate_usage(limit=500)
+
 async def wallet_reconciler(ctx):
     with session_scope() as db:
         tenant_ids = db.execute(
@@ -259,10 +263,11 @@ async def shutdown(ctx):
     return
 
 class WorkerSettings:
-    functions = [execute_run, outbox_dispatcher, reservation_reaper, wallet_reconciler]
+    functions = [execute_run, outbox_dispatcher, reservation_reaper, usage_aggregator, wallet_reconciler]
     cron_jobs = [
         cron(outbox_dispatcher, second={0, 15, 30, 45}),
         cron(reservation_reaper, minute={0, 10, 20, 30, 40, 50}),
+        cron(usage_aggregator, minute={2, 12, 22, 32, 42, 52}),
         cron(wallet_reconciler, hour={0, 6, 12, 18}, minute=5),
     ]
     on_startup = startup
