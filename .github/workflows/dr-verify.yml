@@ -1,0 +1,51 @@
+name: Disaster Recovery Drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DRILL to confirm use of the dedicated restore database"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: omega-disaster-recovery
+  cancel-in-progress: false
+
+jobs:
+  restore-verification:
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
+      OMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
+      OMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require explicit drill confirmation
+        run: test "${{ inputs.confirmation }}" = "DRILL"
+      - name: Validate dedicated database configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL"
+          test -n "$OMEGA_RESTORE_VERIFY_DATABASE_URL"
+          test "$DATABASE_URL" != "$OMEGA_RESTORE_VERIFY_DATABASE_URL"
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Create ephemeral backup evidence
+        run: ./backup.sh
+      - name: Restore and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          export OMEGA_BACKUP_FILE="$(ls -1t backups/omega-*.dump | head -n1)"
+          ./restore-verify.sh
+      - name: Remove ephemeral backup
+        if: always()
+        run: rm -rf backups
