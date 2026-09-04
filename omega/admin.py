@@ -12,6 +12,9 @@ DEFAULT_SCOPES = [
     "billing:write",
     "runs:read",
     "runs:cancel",
+    "keys:read",
+    "keys:write",
+    "audit:read",
 ]
 
 def _validated_parts(raw_api_key: str) -> tuple[str, str]:
