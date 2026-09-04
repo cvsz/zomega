@@ -17,6 +17,12 @@ ALLOWED_SCOPES = {
     "keys:read",
     "keys:write",
     "audit:read",
+    "dashboard:read",
+    "subscription:read",
+    "registry:read",
+    "registry:write",
+    "marketplace:read",
+    "marketplace:write",
 }
 
 def list_api_keys(tenant_id: str) -> list[dict]:
