@@ -45,7 +45,7 @@ class ControlPlaneIntegrationTest(unittest.TestCase):
     def test_key_create_auth_audit_and_revoke(self):
         from omega.auth import authenticate
         from omega.audit import list_audit_events
-        from omega.key_service import create_api_key, list_api_keys, revoke_api_key
+        from omega.key_service import create_api_key, create_service_account, list_api_keys, revoke_api_key
 
         created = create_api_key(
             tenant_id=self.tenant_id,
@@ -74,6 +74,28 @@ class ControlPlaneIntegrationTest(unittest.TestCase):
 
         events = list_audit_events(self.tenant_id)
         self.assertEqual(events[0]["action"], "api_key.revoked")
+
+        service = create_service_account(
+            self.tenant_id,
+            self.primary_id,
+            "automation-worker",
+            "operator",
+        )
+        self.assertEqual(service["key_type"], "service_account")
+        self.assertEqual(service["role"], "operator")
+        service_tenant = authenticate(service["api_key"], "skills:run")
+        self.assertEqual(service_tenant["role"], "operator")
+        self.assertEqual(service_tenant["key_type"], "service_account")
+
+        with self.assertRaises(Exception):
+            create_api_key(
+                self.tenant_id,
+                self.primary_id,
+                "bad-billing-operator",
+                scopes=["billing:write"],
+                key_type="service_account",
+                role="operator",
+            )
 
 if __name__ == "__main__":
     unittest.main()
