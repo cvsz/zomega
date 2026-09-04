@@ -1,6 +1,9 @@
 import argparse
 import getpass
 import json
+import os
+from pathlib import Path
+
 import uvicorn
 from sqlalchemy import text, select
 
@@ -9,7 +12,7 @@ from .db import engine, session_scope
 from .admin import create_tenant, rotate_api_key
 from .billing import reconcile_wallet, refund_run, settle_run
 from .models import Run, Reservation
-from .security import utcnow
+from .security import generate_api_key, utcnow
 
 def _reconcile_run(run_id: str, action: str, charge: int | None):
     with session_scope() as db:
@@ -65,11 +68,30 @@ def _read_api_key_twice() -> str:
         raise SystemExit("API key confirmation failed")
     return first
 
+def _write_new_api_key(path: str) -> None:
+    target = Path(path)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    fd = os.open(target, flags, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(generate_api_key())
+            handle.write("\n")
+    except Exception:
+        try:
+            target.unlink(missing_ok=True)
+        finally:
+            raise
+    print(f"api_key_file={target}")
+    print("api_key_generated=PASS")
+
 def main():
     p = argparse.ArgumentParser(prog="omega")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("serve")
+
+    g = sub.add_parser("generate-api-key")
+    g.add_argument("--output", required=True)
 
     c = sub.add_parser("create-tenant")
     c.add_argument("--name", required=True)
@@ -92,6 +114,8 @@ def main():
 
     if args.cmd == "serve":
         uvicorn.run("omega.api:app", host=settings.omega_host, port=settings.omega_port)
+    elif args.cmd == "generate-api-key":
+        _write_new_api_key(args.output)
     elif args.cmd == "create-tenant":
         raw_api_key = _read_api_key_twice()
         tenant_id = create_tenant(args.name, raw_api_key, args.plan)
