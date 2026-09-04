@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+if [[ ! "${DATABASE_URL:-}" =~ zomega ]] && [[ -f .env ]]; then
+  ENV_DB="$(grep -E '^DATABASE_URL=' .env | cut -d '=' -f2-)"
+  if [[ -n "$ENV_DB" ]]; then
+    DATABASE_URL="$ENV_DB"
+  fi
+fi
+
 : "${DATABASE_URL:?DATABASE_URL required}"
+
 BACKUP_DIR="${BACKUP_DIR:-backups}"
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"

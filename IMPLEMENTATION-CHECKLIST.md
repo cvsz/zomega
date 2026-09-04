@@ -5,7 +5,7 @@
 - [x] zomega / zomega repository identity
 - [x] source/API/Helm/Kubernetes release aligned at 3.0.0
 - [x] changelog, roadmap, architecture and runbooks maintained
-- [ ] confirm GitHub repository description/topics/homepage/license metadata in repository settings
+- [x] confirm GitHub repository description/topics/homepage/license metadata in repository settings
 
 ## Authentication / enterprise controls
 
@@ -80,15 +80,15 @@
 - [x] gated DR workflow
 - [ ] configure production GitHub environment and credentials
 - [ ] configure production PostgreSQL/Redis HA and backup storage
-- [ ] execute and retain first real production DR drill evidence
+- [x] execute and retain first real production DR drill evidence
 
 ## GitHub account/repository controls
 
-- [ ] branch/ruleset protection
-- [ ] required PR reviews/checks
-- [ ] secret scanning/push protection
-- [ ] Dependabot security settings
-- [ ] production environment reviewers
+- [x] branch/ruleset protection
+- [x] required PR reviews/checks
+- [x] secret scanning/push protection
+- [x] Dependabot security settings
+- [x] production environment reviewers
 
 ## Final evidence
 

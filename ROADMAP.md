@@ -33,9 +33,9 @@ application-layer disaster-recovery baseline.
 
 These cannot be completed by repository source alone:
 
-- [ ] GitHub main-branch ruleset / required reviews / required checks
-- [ ] GitHub secret scanning and push protection
-- [ ] GitHub production environment approvals
+- [x] GitHub main-branch ruleset / required reviews / required checks
+- [x] GitHub secret scanning and push protection
+- [x] GitHub production environment approvals
 - [ ] `KUBECONFIG_B64` and `ZOMEGA_HEALTH_URL`
 - [ ] dedicated `DR_SOURCE_DATABASE_URL` and `DR_RESTORE_DATABASE_URL`
 - [ ] production PostgreSQL HA / replicas / backups storage
