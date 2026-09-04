@@ -41,6 +41,7 @@ jobs:
             migrations/versions/0005_audit_events.py
             migrations/versions/0006_commercial_registry_marketplace.py
             migrations/versions/0007_service_account_roles.py
+            migrations/versions/0008_expand_primary_scopes.py
             restore-verify.sh
             requirements-dev.txt
           )
@@ -147,4 +148,4 @@ jobs:
           alembic downgrade base
           alembic upgrade head
       - name: Verify schema head
-        run: test "$(alembic current | awk '{print $1}')" = "0007"
+        run: test "$(alembic current | awk '{print $1}')" = "0008"
