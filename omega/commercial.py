@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from .db import session_scope
 from .models import (
-    Tenant, TenantControl, Subscription, Run, Reservation, UsageEvent, Wallet, AuditEvent
+    Tenant, TenantControl, Subscription, Run, Reservation, UsageEvent, Wallet, WalletLedger, AuditEvent
 )
 from .audit import record_audit
 
@@ -144,10 +144,11 @@ def enforce_tenant_admission(
             raise HTTPException(429, detail={"code": "MONTHLY_RUN_LIMIT_EXCEEDED"})
 
     if control.monthly_credit_limit is not None:
-        charged = db.execute(
-            select(func.coalesce(func.sum(Run.charged_credits), 0)).where(
-                Run.tenant_id == tenant_id,
-                Run.created_at >= month,
+        spent = db.execute(
+            select(func.coalesce(func.sum(-WalletLedger.amount), 0)).where(
+                WalletLedger.tenant_id == tenant_id,
+                WalletLedger.created_at >= month,
+                WalletLedger.kind.in_(["charge", "marketplace_charge"]),
             )
         ).scalar_one()
         open_reserved = db.execute(
@@ -157,7 +158,7 @@ def enforce_tenant_admission(
                 Reservation.created_at >= month,
             )
         ).scalar_one()
-        projected = int(charged) + int(open_reserved) + reservation
+        projected = int(spent) + int(open_reserved) + reservation
         if projected > int(control.monthly_credit_limit):
             raise HTTPException(
                 402,
