@@ -8,7 +8,7 @@ from .pricing import skill_charge, skill_reservation
 from .billing import settle_run, refund_run, reconcile_wallet
 from .evidence import record
 from .security import utcnow
-from .outbox import dispatch_pending
+from .outbox import dispatch_pending, redis_settings
 from .commercial import prune_audit_events
 
 class AmbiguousProviderState(RuntimeError):
@@ -265,6 +265,7 @@ async def shutdown(ctx):
     return
 
 class WorkerSettings:
+    redis_settings = redis_settings()
     functions = [execute_run, outbox_dispatcher, reservation_reaper, wallet_reconciler, audit_retention_reaper]
     cron_jobs = [
         cron(outbox_dispatcher, second={0, 15, 30, 45}),
@@ -274,3 +275,4 @@ class WorkerSettings:
     ]
     on_startup = startup
     on_shutdown = shutdown
+
