@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
-from sqlalchemy import func, select
-from fastapi import HTTPException
 
+from fastapi import HTTPException
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from .audit import record_audit
 from .db import session_scope
 from .models import ApiKey, Tenant, TenantQuota
 from .security import generate_api_key, hash_api_key_secret, parse_api_key
-from .audit import record_audit
 
 ALLOWED_SCOPES = {
     "agents:run",
@@ -25,6 +27,67 @@ ALLOWED_SCOPES = {
     "marketplace:write",
     "platform:read",
 }
+
+def _normalize_scopes(scopes: list[str]) -> list[str]:
+    normalized = sorted(set(scopes))
+    if not normalized:
+        raise HTTPException(400, "At least one scope is required")
+    unknown = set(normalized) - ALLOWED_SCOPES
+    if unknown:
+        raise HTTPException(400, f"Unknown scopes: {sorted(unknown)}")
+    return normalized
+
+def _enforce_key_quota(db: Session, tenant_id: str) -> None:
+    tenant = db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant not found")
+    quota = db.execute(
+        select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
+    ).scalar_one_or_none()
+    if quota is None:
+        from .platform import ensure_tenant_controls
+        ensure_tenant_controls(db, tenant_id, tenant.plan)
+        quota = db.execute(
+            select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
+        ).scalar_one()
+    active_count = db.execute(
+        select(func.count(ApiKey.id)).where(
+            ApiKey.tenant_id == tenant_id,
+            ApiKey.active.is_(True),
+        )
+    ).scalar_one()
+    if int(active_count) >= quota.max_api_keys:
+        raise HTTPException(
+            429,
+            detail={"code": "API_KEY_LIMIT", "limit": quota.max_api_keys, "active": int(active_count)},
+        )
+
+def create_api_key_record(
+    db: Session,
+    tenant_id: str,
+    name: str,
+    scopes: list[str],
+    expires_at: datetime | None = None,
+) -> tuple[ApiKey, str]:
+    normalized = _normalize_scopes(scopes)
+    if expires_at is not None and expires_at <= datetime.now(timezone.utc):
+        raise HTTPException(400, "expires_at must be in the future")
+    _enforce_key_quota(db, tenant_id)
+
+    raw = generate_api_key()
+    prefix, secret = parse_api_key(raw)
+    key = ApiKey(
+        tenant_id=tenant_id,
+        name=name,
+        key_prefix=prefix,
+        key_digest=hash_api_key_secret(secret),
+        scopes=normalized,
+        active=True,
+        expires_at=expires_at,
+    )
+    db.add(key)
+    db.flush()
+    return key, raw
 
 def list_api_keys(tenant_id: str) -> list[dict]:
     with session_scope() as db:
@@ -50,53 +113,10 @@ def create_api_key(
     scopes: list[str],
     expires_at: datetime | None = None,
 ) -> dict:
-    normalized = sorted(set(scopes))
-    if not normalized:
-        raise HTTPException(400, "At least one scope is required")
-    unknown = set(normalized) - ALLOWED_SCOPES
-    if unknown:
-        raise HTTPException(400, f"Unknown scopes: {sorted(unknown)}")
-    if expires_at is not None and expires_at <= datetime.now(timezone.utc):
-        raise HTTPException(400, "expires_at must be in the future")
-
-    raw = generate_api_key()
-    prefix, secret = parse_api_key(raw)
     with session_scope() as db:
-        tenant = db.get(Tenant, tenant_id)
-        if not tenant:
-            raise HTTPException(404, "Tenant not found")
-        quota = db.execute(
-            select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
-        ).scalar_one_or_none()
-        if quota is None:
-            from .platform import ensure_tenant_controls
-            quota, _ = ensure_tenant_controls(db, tenant_id, tenant.plan)
-            quota = db.execute(
-                select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
-            ).scalar_one()
-        active_count = db.execute(
-            select(func.count(ApiKey.id)).where(
-                ApiKey.tenant_id == tenant_id,
-                ApiKey.active.is_(True),
-            )
-        ).scalar_one()
-        if int(active_count) >= quota.max_api_keys:
-            raise HTTPException(
-                429,
-                detail={"code": "API_KEY_LIMIT", "limit": quota.max_api_keys, "active": int(active_count)},
-            )
-        key = ApiKey(
-            tenant_id=tenant_id,
-            name=name,
-            key_prefix=prefix,
-            key_digest=hash_api_key_secret(secret),
-            scopes=normalized,
-            active=True,
-            expires_at=expires_at,
-        )
-        db.add(key)
-        db.flush()
+        key, raw = create_api_key_record(db, tenant_id, name, scopes, expires_at)
         key_id = key.id
+        normalized = list(key.scopes)
 
     record_audit(
         tenant_id=tenant_id,
