@@ -1,88 +1,88 @@
-# Production Architecture — OMEGA 2.1
+# Production Architecture — OMEGA 3.0
 
-OMEGA uses PostgreSQL as the source of truth, Redis/ARQ for durable job delivery, Stripe Checkout
-for prepaid credit purchase, and OpenAI Responses API for AI execution.
+OMEGA uses PostgreSQL as the source of truth, Redis/ARQ for job delivery, Stripe Checkout for
+prepaid credit purchase, and OpenAI Responses API for AI execution.
+
+## Identity and authorization
+
+OMEGA API keys have the form:
+
+```text
+omega_<public-locator>_<secret>
+```
+
+The locator supports indexed lookup. Only an Argon2id hash of secret + server pepper is stored.
+Tenant routes enforce scopes, and service accounts may use predefined RBAC role presets whose scope
+sets cannot be escalated beyond the selected role.
+
+Platform-level plan/quota mutation uses a separate `X-OMEGA-Admin-Token` validated with
+constant-time comparison.
 
 ## Money path
 
-1. Authenticated tenant selects a server-owned Stripe package.
-2. OMEGA creates a Stripe Checkout Session using the configured Price ID.
-3. Stripe sends a signed webhook over the raw request body.
-4. OMEGA validates the signature and package metadata.
-5. PostgreSQL inserts the provider event using conflict-safe idempotency.
-6. In the same transaction, the tenant wallet is locked, credited, versioned, and a ledger entry is written.
-7. Duplicate provider events return safely without a second credit.
+1. tenant selects a server-owned Stripe package
+2. Stripe Checkout is created from configured Price IDs
+3. Stripe sends a signed webhook
+4. OMEGA validates signature and package metadata
+5. provider event insertion, wallet credit, and financial ledger commit atomically
+6. duplicate provider events are idempotent
 
-There is no state where a committed payment event can exist without its corresponding wallet credit
-for a verified payment.
+Marketplace purchases similarly commit buyer debit, publisher revenue-share credit, marketplace
+accounting, and private-skill grant in one PostgreSQL transaction.
 
-## Run creation path
-
-A single PostgreSQL transaction performs:
+## Run admission path
 
 ```text
-advisory lock for tenant + idempotency key
-→ idempotency lookup
-→ SELECT wallet FOR UPDATE
+tenant/month quota advisory lock
+→ entitlement and allowlist checks
+→ idempotency lock/lookup
+→ wallet FOR UPDATE
 → create Run(PENDING_DISPATCH)
-→ move available → reserved credits
-→ create Reservation
-→ write reserve ledger
-→ write IdempotencyRecord
-→ write RUN_REQUESTED OutboxEvent
+→ available → reserved
+→ Reservation + ledger
+→ IdempotencyRecord
+→ RUN_REQUESTED OutboxEvent
 → COMMIT
 ```
 
-After commit, the dispatcher enqueues the deterministic Redis job ID. If Redis is unavailable, the
-outbox remains pending and is retried by the worker cron dispatcher. No reservation is orphaned
-without a durable queue intent.
+Monthly limits include settled execution spend, marketplace purchases, open reservations, and the
+candidate reservation.
 
-## Worker path
+## Durable execution
 
-Each skill has a durable `SkillExecution` checkpoint.
+Each skill execution has a durable checkpoint. Completed checkpoints are replayed without another
+provider request. A retry that encounters an unresolved RUNNING checkpoint becomes
+`BLOCKED / AMBIGUOUS_PROVIDER_STATE` instead of risking duplicate billable execution.
 
-- A completed checkpoint is replayed without another provider call.
-- A checkpoint still marked `RUNNING` on retry is treated as ambiguous.
-- OMEGA blocks the run instead of risking a duplicate OpenAI call.
-- Operators explicitly reconcile that blocked reservation after examining provider evidence.
+## Signed private registry
 
-Before every skill, the worker checks cancellation and remaining budget. It never launches a skill
-whose reservation would exceed the caller's maximum spend.
+Publishers register Ed25519 public keys. Private-skill manifests are canonicalized JSON and verified
+against an Ed25519 signature. Each stored version retains:
 
-## Billing settlement
+- manifest content
+- SHA-256 content-integrity digest
+- signature
+- signer public-key snapshot
 
-Success:
-
-```text
-reserved → actual charge + unused refund
-```
-
-Failure before ambiguous provider state:
-
-```text
-open reservation → full refund
-```
-
-Cancellation:
-
-- before execution: full refund
-- between completed skills: charge completed work and refund the remainder
+Historical versions remain verifiable after publisher key rotation.
 
 ## Reconciliation
 
-Periodic worker jobs:
+Workers periodically:
 
 - dispatch pending outbox events
-- reap expired non-running reservations
-- compare wallet totals, open reservations, and ledger-derived net balances
+- reap expired reservations
+- reconcile wallet/ledger/reservation invariants
+- prune audit records according to tenant retention policy
 
-Database checks prevent negative wallet balances and invalid ledger/reservation amounts.
+Wallet reconciliation includes Stripe credits, run charges, marketplace buyer charges, and
+publisher marketplace earnings.
 
-## Security boundaries
+## Application HA / DR
 
-- API keys are stored as HMAC digests.
-- Every private route enforces a specific API-key scope.
-- Catalog responses use sanitized DTOs and do not expose internal prompts.
-- Kubernetes workloads run non-root, drop Linux capabilities, disable privilege escalation, use
-  read-only root filesystems, disable service-account token automounting, and use RuntimeDefault seccomp.
-- NetworkPolicy defaults to deny and explicitly permits runtime DNS and required outbound ports.
+API and worker deployments use topology spread and PodDisruptionBudgets. Backup tooling creates
+checksummed PostgreSQL dump evidence; restore verification checks schema head and financial
+invariants against a dedicated restore database.
+
+Database replication, Redis HA, cross-region traffic steering, DNS failover, and external backup
+storage remain infrastructure/operator responsibilities.
