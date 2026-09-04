@@ -7,6 +7,7 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
+    op.add_column("runs", sa.Column("usage_accounted", sa.Boolean(), nullable=False, server_default=sa.false()))
     op.create_table(
         "tenant_quotas",
         sa.Column("tenant_id", sa.String(36), sa.ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True),
@@ -131,6 +132,7 @@ def upgrade():
     """)
 
 def downgrade():
+    op.drop_column("runs", "usage_accounted")
     op.drop_table("marketplace_ledger")
     op.drop_table("marketplace_listings")
     op.drop_table("private_skills")
