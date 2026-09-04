@@ -63,6 +63,20 @@ def upgrade():
     )
     op.create_index("ix_organization_members_organization_id", "organization_members", ["organization_id"])
     op.create_table(
+        "service_accounts",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("tenant_id", sa.String(36), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("organization_id", sa.String(36), sa.ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("api_key_id", sa.String(36), sa.ForeignKey("api_keys.id", ondelete="CASCADE"), nullable=False, unique=True),
+        sa.Column("name", sa.String(120), nullable=False),
+        sa.Column("status", sa.String(30), nullable=False, server_default="active"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.UniqueConstraint("tenant_id", "name", name="uq_service_account_tenant_name"),
+        sa.CheckConstraint("status IN ('active','disabled')", name="ck_service_account_status"),
+    )
+    op.create_index("ix_service_accounts_tenant_id", "service_accounts", ["tenant_id"])
+    op.create_index("ix_service_accounts_organization_id", "service_accounts", ["organization_id"])
+    op.create_table(
         "private_skills",
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("tenant_id", sa.String(36), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
@@ -120,6 +134,7 @@ def downgrade():
     op.drop_table("marketplace_ledger")
     op.drop_table("marketplace_listings")
     op.drop_table("private_skills")
+    op.drop_table("service_accounts")
     op.drop_table("organization_members")
     op.drop_table("organizations")
     op.drop_table("tenant_usage_monthly")
