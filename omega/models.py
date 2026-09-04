@@ -306,3 +306,16 @@ class ServiceAccount(Base):
         UniqueConstraint("tenant_id", "name", name="uq_service_account_tenant_name"),
         CheckConstraint("status IN ('active','disabled')", name="ck_service_account_status"),
     )
+
+
+class SkillLicense(Base):
+    __tablename__ = "skill_licenses"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    listing_id: Mapped[str] = mapped_column(ForeignKey("marketplace_listings.id", ondelete="CASCADE"), index=True)
+    purchase_price_credits: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "listing_id", name="uq_skill_license_tenant_listing"),
+        CheckConstraint("purchase_price_credits > 0", name="ck_skill_license_price_positive"),
+    )
