@@ -9,6 +9,13 @@ test -f "$OMEGA_BACKUP_FILE.sha256"
 sha256sum --check "$OMEGA_BACKUP_FILE.sha256"
 
 RESTORE_URL="${OMEGA_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:}"
+if [[ -n "${OMEGA_SOURCE_DATABASE_URL:-}" ]]; then
+  SOURCE_URL="${OMEGA_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
+  if [[ "$SOURCE_URL" == "$RESTORE_URL" ]]; then
+    echo "Refusing to restore into source database" >&2
+    exit 2
+  fi
+fi
 
 pg_restore   --dbname="$RESTORE_URL"   --clean   --if-exists   --no-owner   --no-acl   "$OMEGA_BACKUP_FILE"
 
