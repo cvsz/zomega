@@ -13,7 +13,7 @@ RESTORE_URL="${OMEGA_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:
 pg_restore   --dbname="$RESTORE_URL"   --clean   --if-exists   --no-owner   --no-acl   "$OMEGA_BACKUP_FILE"
 
 HEAD="$(psql "$RESTORE_URL" -Atc 'SELECT version_num FROM alembic_version LIMIT 1')"
-test "$HEAD" = "0006"
+test "$HEAD" = "0007"
 
 NEGATIVE_WALLETS="$(psql "$RESTORE_URL" -Atc 'SELECT count(*) FROM wallets WHERE available_credits < 0 OR reserved_credits < 0')"
 test "$NEGATIVE_WALLETS" = "0"
@@ -31,4 +31,4 @@ WHERE w.reserved_credits <> COALESCE(r.open_reserved, 0)
 ")"
 test "$RESERVATION_MISMATCH" = "0"
 
-printf '%s\n' '{"schema":"omega.restore-verification.v1","status":"PASS","alembic_head":"0006"}'
+printf '%s\n' '{"schema":"omega.restore-verification.v1","status":"PASS","alembic_head":"0007"}'
