@@ -1,3 +1,4 @@
+import json
 from sqlalchemy import select
 
 from .db import session_scope
@@ -41,3 +42,10 @@ def list_audit_events(tenant_id: str, limit: int = 100) -> list[dict]:
             "metadata": row.metadata_json,
             "created_at": row.created_at,
         } for row in rows]
+
+def export_audit_ndjson(tenant_id: str, limit: int = 10000):
+    events = list_audit_events(tenant_id, min(max(limit, 1), 10000))
+    for event in events:
+        serializable = dict(event)
+        serializable["created_at"] = event["created_at"].isoformat()
+        yield json.dumps(serializable, sort_keys=True, separators=(",", ":")) + "\n"
