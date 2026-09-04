@@ -12,6 +12,7 @@ from .catalog import load_skills, load_agents
 from .pricing import skill_reservation
 from .security import utcnow
 from .outbox import dispatch_run
+from .platform import enforce_run_admission
 
 def calculate_agent_reservation(agent_id: str) -> int:
     agents = load_agents()
@@ -96,6 +97,8 @@ async def _create_run(tenant, agent_id, skill_id, payload, reservation, idempote
                     "replayed": True,
                     "reserved_credits": run.max_spend_credits,
                 }
+
+        enforce_run_admission(db, tenant["id"], reservation)
 
         wallet = db.execute(
             select(Wallet).where(Wallet.tenant_id == tenant["id"]).with_for_update()
