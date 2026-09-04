@@ -1,7 +1,7 @@
-# OMEGA Skill 086: supply-chain-hardening
+# zomega Skill 086: supply-chain-hardening
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `supply-chain-hardening` as a production engineering operation with traceable evidence.

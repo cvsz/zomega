@@ -1,7 +1,7 @@
-# OMEGA Skill 006: authentication-architecture
+# zomega Skill 006: authentication-architecture
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `authentication-architecture` as a production engineering operation with traceable evidence.

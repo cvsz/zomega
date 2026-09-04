@@ -22,7 +22,7 @@ Verification checks:
 - no negative wallet balances
 - open reservation totals match wallet reserved balances
 
-When `OMEGA_SOURCE_DATABASE_URL` is supplied, the script refuses an identical restore URL.
+When `zomega_SOURCE_DATABASE_URL` is supplied, the script refuses an identical restore URL.
 
 ## GitHub DR workflow
 

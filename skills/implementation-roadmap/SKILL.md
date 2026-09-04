@@ -1,7 +1,7 @@
-# OMEGA Skill 045: implementation-roadmap
+# zomega Skill 045: implementation-roadmap
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `implementation-roadmap` as a production engineering operation with traceable evidence.

@@ -1,8 +1,8 @@
 id: alerting
 version: 1.0.0
-agent: omega-sre
+agent: zomega-sre
 enabled: true
-description: 'OMEGA Skill 060: alerting'
+description: 'zomega Skill 060: alerting'
 billing:
   mode: fixed
   base_price: 40
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `alerting`. Inspect supplied evidence
+prompt: You are the production zomega capability `alerting`. Inspect supplied evidence
   and current state before conclusions. Execute the requested capability end-to-end
   within authorized scope. Apply least privilege, preserve working components, and
   never expose secret values. For every material action produce validation evidence

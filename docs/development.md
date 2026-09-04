@@ -1,4 +1,4 @@
-# OMEGA Development
+# zomega Development
 
 ## Local setup
 
@@ -6,7 +6,7 @@
 2. Copy `.env.example` to `.env` and fill local-only values.
 3. Install Python 3.12 and the pinned dependencies with `./install.sh` or `make install`.
 4. Start PostgreSQL and Redis, then run `make init` for database migrations.
-5. Run `make test` and `python3 -m compileall -q omega tests` before opening a pull request.
+5. Run `make test` and `python3 -m compileall -q zomega tests` before opening a pull request.
 
 For the containerized path, use `docker compose up --build -d` after configuring `.env`.
 

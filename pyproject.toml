@@ -1,5 +1,5 @@
 [project]
-name = "omega-production"
+name = "zomega-production"
 version = "3.0.0"
 description = "Production paid-before-use multi-agent skills platform"
 requires-python = ">=3.12"
@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-omega = "omega.cli:main"
+zomega = "zomega.cli:main"
 
 [tool.ruff]
 target-version = "py312"
@@ -40,3 +40,7 @@ plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+

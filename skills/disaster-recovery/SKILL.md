@@ -1,7 +1,7 @@
-# OMEGA Skill 021: disaster-recovery
+# zomega Skill 021: disaster-recovery
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `disaster-recovery` as a production engineering operation with traceable evidence.

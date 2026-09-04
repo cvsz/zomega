@@ -36,7 +36,7 @@ TEMPLATE_BASELINE_FILES = (
 
 
 class RepositoryContractTest(unittest.TestCase):
-    def test_shared_repository_baseline_is_present_and_named_for_omega(self):
+    def test_shared_repository_baseline_is_present_and_named_for_zomega(self):
         for relative_path in TEMPLATE_BASELINE_FILES:
             self.assertTrue(
                 (ROOT / relative_path).is_file(),
@@ -65,9 +65,9 @@ class RepositoryContractTest(unittest.TestCase):
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
         self.assertIn("python3 -m compileall", verify)
-        self.assertIn("python3 -m omega db-check", verify)
+        self.assertIn("python3 -m zomega db-check", verify)
         self.assertIn("alembic upgrade head", upgrade)
-        self.assertNotIn("omega init", upgrade)
+        self.assertNotIn("zomega init", upgrade)
         self.assertIn("PYTHON ?= python3", makefile)
 
 

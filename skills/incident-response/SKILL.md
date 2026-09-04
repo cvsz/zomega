@@ -1,7 +1,7 @@
-# OMEGA Skill 046: incident-response
+# zomega Skill 046: incident-response
 
 ## Owner
-`omega-operator`
+`zomega-operator`
 
 ## Objective
 Execute `incident-response` as a production engineering operation with traceable evidence.

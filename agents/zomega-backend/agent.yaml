@@ -1,0 +1,12 @@
+id: zomega-backend
+role: "Backend Engineer"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - api-architecture
+  - fastapi-production-setup
+  - node-production-setup
+  - webhook-hardening

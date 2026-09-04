@@ -1,7 +1,7 @@
-# OMEGA Skill 067: release-engineering
+# zomega Skill 067: release-engineering
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `release-engineering` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 075: secret-inventory
+# zomega Skill 075: secret-inventory
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `secret-inventory` as a production engineering operation with traceable evidence.

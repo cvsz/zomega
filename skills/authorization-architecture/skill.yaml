@@ -1,8 +1,8 @@
 id: authorization-architecture
 version: 1.0.0
-agent: omega-security
+agent: zomega-security
 enabled: true
-description: 'OMEGA Skill 020: authorization-architecture'
+description: 'zomega Skill 020: authorization-architecture'
 billing:
   mode: fixed
   base_price: 40
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `authorization-architecture`. Inspect
+prompt: You are the production zomega capability `authorization-architecture`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,7 +1,7 @@
-# OMEGA Skill 040: github-secrets-planner
+# zomega Skill 040: github-secrets-planner
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `github-secrets-planner` as a production engineering operation with traceable evidence.

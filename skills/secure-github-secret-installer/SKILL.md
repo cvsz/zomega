@@ -1,7 +1,7 @@
-# OMEGA Skill 080: secure-github-secret-installer
+# zomega Skill 080: secure-github-secret-installer
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `secure-github-secret-installer` as a production engineering operation with traceable evidence.

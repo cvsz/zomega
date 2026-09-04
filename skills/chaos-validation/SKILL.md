@@ -1,7 +1,7 @@
-# OMEGA Skill 012: chaos-validation
+# zomega Skill 012: chaos-validation
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `chaos-validation` as a production engineering operation with traceable evidence.

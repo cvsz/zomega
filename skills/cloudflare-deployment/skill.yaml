@@ -1,8 +1,8 @@
 id: cloudflare-deployment
 version: 1.0.0
-agent: omega-platform
+agent: zomega-platform
 enabled: true
-description: 'OMEGA Skill 052: cloudflare-deployment'
+description: 'zomega Skill 052: cloudflare-deployment'
 billing:
   mode: fixed
   base_price: 40
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `cloudflare-deployment`. Inspect supplied
+prompt: You are the production zomega capability `cloudflare-deployment`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

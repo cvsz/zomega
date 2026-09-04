@@ -1,7 +1,7 @@
-# OMEGA Skill 022: distributed-tracing
+# zomega Skill 022: distributed-tracing
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `distributed-tracing` as a production engineering operation with traceable evidence.

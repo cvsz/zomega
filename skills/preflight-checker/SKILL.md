@@ -1,7 +1,7 @@
-# OMEGA Skill 062: preflight-checker
+# zomega Skill 062: preflight-checker
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `preflight-checker` as a production engineering operation with traceable evidence.

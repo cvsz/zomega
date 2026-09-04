@@ -1,8 +1,8 @@
 id: encryption-architecture
 version: 1.0.0
-agent: omega-security
+agent: zomega-security
 enabled: true
-description: 'OMEGA Skill 088: encryption-architecture'
+description: 'zomega Skill 088: encryption-architecture'
 billing:
   mode: fixed
   base_price: 20
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `encryption-architecture`. Inspect
+prompt: You are the production zomega capability `encryption-architecture`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

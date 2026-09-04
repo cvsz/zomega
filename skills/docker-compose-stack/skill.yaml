@@ -1,8 +1,8 @@
 id: docker-compose-stack
 version: 1.0.0
-agent: omega-devops
+agent: zomega-devops
 enabled: true
-description: 'OMEGA Skill 026: docker-compose-stack'
+description: 'zomega Skill 026: docker-compose-stack'
 billing:
   mode: fixed
   base_price: 30
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `docker-compose-stack`. Inspect supplied
+prompt: You are the production zomega capability `docker-compose-stack`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,8 +1,8 @@
 id: security-tests
 version: 1.0.0
-agent: omega-security
+agent: zomega-security
 enabled: true
-description: 'OMEGA Skill 070: security-tests'
+description: 'zomega Skill 070: security-tests'
 billing:
   mode: fixed
   base_price: 50
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `security-tests`. Inspect supplied
+prompt: You are the production zomega capability `security-tests`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

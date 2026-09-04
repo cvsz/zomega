@@ -1,7 +1,7 @@
-# OMEGA Skill 059: operator-runbook
+# zomega Skill 059: operator-runbook
 
 ## Owner
-`omega-operator`
+`zomega-operator`
 
 ## Objective
 Execute `operator-runbook` as a production engineering operation with traceable evidence.

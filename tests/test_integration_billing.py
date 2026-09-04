@@ -5,11 +5,11 @@ import unittest
 
 from sqlalchemy import select, func
 
-@unittest.skipUnless(os.getenv("OMEGA_INTEGRATION") == "1", "integration services not enabled")
+@unittest.skipUnless(os.getenv("zomega_INTEGRATION") == "1", "integration services not enabled")
 class BillingIntegrationTest(unittest.TestCase):
     def setUp(self):
-        from omega.db import session_scope
-        from omega.models import Tenant, Wallet
+        from zomega.db import session_scope
+        from zomega.models import Tenant, Wallet
         self.tenant_id = str(uuid.uuid4())
         with session_scope() as db:
             db.add(Tenant(
@@ -26,9 +26,9 @@ class BillingIntegrationTest(unittest.TestCase):
             ))
 
     def test_verified_payment_is_atomic_and_idempotent(self):
-        from omega.billing import process_verified_payment, get_wallet
-        from omega.db import session_scope
-        from omega.models import WalletLedger, PaymentEvent
+        from zomega.billing import process_verified_payment, get_wallet
+        from zomega.db import session_scope
+        from zomega.models import WalletLedger, PaymentEvent
 
         event_id = "evt_" + uuid.uuid4().hex
         first = process_verified_payment(
@@ -71,11 +71,11 @@ class BillingIntegrationTest(unittest.TestCase):
         self.assertEqual(credit_count, 1)
 
     def test_idempotent_run_reserves_once(self):
-        from omega.billing import process_verified_payment, get_wallet
-        from omega.run_service import create_skill_run
-        from omega.catalog import load_skills
-        from omega.db import session_scope
-        from omega.models import Reservation, IdempotencyRecord
+        from zomega.billing import process_verified_payment, get_wallet
+        from zomega.run_service import create_skill_run
+        from zomega.catalog import load_skills
+        from zomega.db import session_scope
+        from zomega.models import Reservation, IdempotencyRecord
 
         payment_id = "evt_" + uuid.uuid4().hex
         process_verified_payment(

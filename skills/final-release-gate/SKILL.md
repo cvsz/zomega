@@ -1,7 +1,7 @@
-# OMEGA Skill 033: final-release-gate
+# zomega Skill 033: final-release-gate
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `final-release-gate` as a production engineering operation with traceable evidence.

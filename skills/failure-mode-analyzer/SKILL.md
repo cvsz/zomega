@@ -1,7 +1,7 @@
-# OMEGA Skill 031: failure-mode-analyzer
+# zomega Skill 031: failure-mode-analyzer
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `failure-mode-analyzer` as a production engineering operation with traceable evidence.

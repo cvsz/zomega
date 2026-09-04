@@ -1,7 +1,7 @@
-# OMEGA Skill 071: restore-drill
+# zomega Skill 071: restore-drill
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `restore-drill` as a production engineering operation with traceable evidence.

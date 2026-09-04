@@ -1,7 +1,7 @@
-# OMEGA Skill 066: redis-hardening
+# zomega Skill 066: redis-hardening
 
 ## Owner
-`omega-data`
+`zomega-data`
 
 ## Objective
 Execute `redis-hardening` as a production engineering operation with traceable evidence.

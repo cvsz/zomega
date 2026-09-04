@@ -1,5 +1,5 @@
 import unittest
-from omega.catalog import load_skills, load_agents, public_catalog
+from zomega.catalog import load_skills, load_agents, public_catalog
 
 class CatalogTest(unittest.TestCase):
     def test_exact_catalog(self):

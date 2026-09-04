@@ -1,7 +1,7 @@
-# OMEGA Skill 042: health-checks
+# zomega Skill 042: health-checks
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `health-checks` as a production engineering operation with traceable evidence.

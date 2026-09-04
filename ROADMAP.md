@@ -1,6 +1,6 @@
-# OMEGA Roadmap
+# zomega Roadmap
 
-OMEGA 3.0 completes the source-side commercial, marketplace, enterprise service-account, and
+zomega 3.0 completes the source-side commercial, marketplace, enterprise service-account, and
 application-layer disaster-recovery baseline.
 
 ## Completed source baseline
@@ -21,7 +21,7 @@ application-layer disaster-recovery baseline.
 - [x] marketplace listing/purchase/revenue-share settlement
 - [x] marketplace-aware financial reconciliation
 - [x] PostgreSQL/Redis integration tests
-- [x] OMEGA 2.2 → 3.0 migration compatibility test
+- [x] zomega 2.2 → 3.0 migration compatibility test
 - [x] CodeQL/SAST/dependency/container/IaC/SBOM gates
 - [x] immutable GHCR provenance
 - [x] Helm atomic migration/deployment
@@ -36,7 +36,7 @@ These cannot be completed by repository source alone:
 - [ ] GitHub main-branch ruleset / required reviews / required checks
 - [ ] GitHub secret scanning and push protection
 - [ ] GitHub production environment approvals
-- [ ] `KUBECONFIG_B64` and `OMEGA_HEALTH_URL`
+- [ ] `KUBECONFIG_B64` and `zomega_HEALTH_URL`
 - [ ] dedicated `DR_SOURCE_DATABASE_URL` and `DR_RESTORE_DATABASE_URL`
 - [ ] production PostgreSQL HA / replicas / backups storage
 - [ ] production Redis HA

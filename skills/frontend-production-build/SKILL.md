@@ -1,7 +1,7 @@
-# OMEGA Skill 036: frontend-production-build
+# zomega Skill 036: frontend-production-build
 
 ## Owner
-`omega-frontend`
+`zomega-frontend`
 
 ## Objective
 Execute `frontend-production-build` as a production engineering operation with traceable evidence.

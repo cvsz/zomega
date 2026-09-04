@@ -1,4 +1,4 @@
-# Billing Guarantees — OMEGA 3.0
+# Billing Guarantees — zomega 3.0
 
 ## Financial invariants
 
@@ -15,7 +15,7 @@
 
 ## Checkout integrity
 
-Clients submit a package identifier rather than an arbitrary price or credit amount. OMEGA maps
+Clients submit a package identifier rather than an arbitrary price or credit amount. zomega maps
 packages to operator-configured Stripe Price IDs and grants credits only after signed paid webhook
 verification.
 
@@ -23,7 +23,7 @@ verification.
 
 Run reservation is bounded by Skill/Agent pricing and caller `max_spend_credits`.
 
-OMEGA 3.0 additionally enforces tenant-month:
+zomega 3.0 additionally enforces tenant-month:
 
 - run limits
 - credit/spend limits
@@ -43,12 +43,12 @@ publisher + publisher share
 platform accounting = gross - publisher share
 ```
 
-Publisher earnings become usable OMEGA credits immediately after the transaction commits.
+Publisher earnings become usable zomega credits immediately after the transaction commits.
 
 ## Reconciliation
 
 ```bash
-omega reconcile-wallet --tenant-id <tenant-id>
+zomega reconcile-wallet --tenant-id <tenant-id>
 ```
 
 A failed reconciliation is a financial incident. Freeze affected automated financial mutations,

@@ -1,0 +1,12 @@
+id: zomega-orchestrator
+role: "zomega Orchestrator"
+version: "1.0.0"
+permissions:
+  read: ["repository", "configuration", "evidence"]
+  write: ["workspace", "reports"]
+  destructive: false
+default_workflow:
+  - mission-interpreter
+  - repository-intelligence
+  - implementation-roadmap
+  - final-release-gate

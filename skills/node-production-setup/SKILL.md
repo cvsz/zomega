@@ -1,7 +1,7 @@
-# OMEGA Skill 058: node-production-setup
+# zomega Skill 058: node-production-setup
 
 ## Owner
-`omega-backend`
+`zomega-backend`
 
 ## Objective
 Execute `node-production-setup` as a production engineering operation with traceable evidence.

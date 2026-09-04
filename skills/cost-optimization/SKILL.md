@@ -1,7 +1,7 @@
-# OMEGA Skill 016: cost-optimization
+# zomega Skill 016: cost-optimization
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `cost-optimization` as a production engineering operation with traceable evidence.

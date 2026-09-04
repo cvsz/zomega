@@ -1,7 +1,7 @@
-# OMEGA Skill 088: terraform-infrastructure
+# zomega Skill 088: terraform-infrastructure
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `terraform-infrastructure` as a production engineering operation with traceable evidence.

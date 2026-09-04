@@ -1,7 +1,7 @@
-# OMEGA Skill 023: docker-compose-stack
+# zomega Skill 023: docker-compose-stack
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `docker-compose-stack` as a production engineering operation with traceable evidence.

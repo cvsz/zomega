@@ -1,6 +1,6 @@
-# About OMEGA
+# About zomega
 
-OMEGA Production 2.0 is a paid-before-use, multi-tenant API for running governed
+zomega Production 2.0 is a paid-before-use, multi-tenant API for running governed
 Agents and Skills. It is maintained in the `cvsz` GitHub namespace and is intended
 to be operated as a service with durable state, explicit authorization, and auditable
 financial and execution boundaries.
@@ -16,7 +16,7 @@ financial and execution boundaries.
 
 ## Engineering posture
 
-OMEGA treats security, billing correctness, tenant isolation, observability, testing,
+zomega treats security, billing correctness, tenant isolation, observability, testing,
 documentation, and rollback as part of the product. Security-sensitive paths should
 fail closed, and repository or CI gates should not be weakened to make a build green.
 

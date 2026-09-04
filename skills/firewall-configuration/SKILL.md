@@ -1,7 +1,7 @@
-# OMEGA Skill 035: firewall-configuration
+# zomega Skill 035: firewall-configuration
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `firewall-configuration` as a production engineering operation with traceable evidence.

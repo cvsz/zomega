@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-default-deny
-  namespace: omega
+  name: zomega-default-deny
+  namespace: zomega
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
@@ -10,11 +10,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-api-ingress
-  namespace: omega
+  name: zomega-api-ingress
+  namespace: zomega
 spec:
   podSelector:
-    matchLabels: {app: omega-api}
+    matchLabels: {app: zomega-api}
   policyTypes: [Ingress]
   ingress:
     - ports:
@@ -23,12 +23,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: omega-runtime-egress
-  namespace: omega
+  name: zomega-runtime-egress
+  namespace: zomega
 spec:
   podSelector:
     matchExpressions:
-      - {key: app, operator: In, values: [omega-api, omega-worker, omega-migrate]}
+      - {key: app, operator: In, values: [zomega-api, zomega-worker, zomega-migrate]}
   policyTypes: [Egress]
   egress:
     - to:

@@ -1,7 +1,7 @@
-# OMEGA Skill 009: backup-architecture
+# zomega Skill 009: backup-architecture
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `backup-architecture` as a production engineering operation with traceable evidence.

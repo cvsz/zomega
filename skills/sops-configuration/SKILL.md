@@ -1,7 +1,7 @@
-# OMEGA Skill 085: sops-configuration
+# zomega Skill 085: sops-configuration
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `sops-configuration` as a production engineering operation with traceable evidence.

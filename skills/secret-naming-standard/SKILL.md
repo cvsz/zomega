@@ -1,7 +1,7 @@
-# OMEGA Skill 077: secret-naming-standard
+# zomega Skill 077: secret-naming-standard
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `secret-naming-standard` as a production engineering operation with traceable evidence.

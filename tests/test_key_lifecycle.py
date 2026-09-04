@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import patch
 
 ENV = {
-    "OMEGA_PUBLIC_URL": "https://example.invalid",
-    "DATABASE_URL": "postgresql+psycopg://omega:omega@localhost:5432/omega",
+    "zomega_PUBLIC_URL": "https://example.invalid",
+    "DATABASE_URL": "postgresql+psycopg://zomega:zomega@localhost:5432/zomega",
     "REDIS_URL": "redis://localhost:6379/0",
-    "OMEGA_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
-    "OMEGA_ADMIN_TOKEN": "test-admin",
+    "zomega_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
+    "zomega_ADMIN_TOKEN": "test-admin",
     "OPENAI_API_KEY": "test",
     "STRIPE_SECRET_KEY": "test",
     "STRIPE_WEBHOOK_SECRET": "test",
@@ -19,7 +19,7 @@ ENV = {
 class KeyLifecycleContractTest(unittest.TestCase):
     @patch.dict(os.environ, ENV, clear=False)
     def test_control_plane_scopes_exist(self):
-        from omega.key_service import ALLOWED_SCOPES
+        from zomega.key_service import ALLOWED_SCOPES
         self.assertIn("keys:read", ALLOWED_SCOPES)
         self.assertIn("keys:write", ALLOWED_SCOPES)
         self.assertIn("audit:read", ALLOWED_SCOPES)

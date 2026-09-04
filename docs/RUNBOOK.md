@@ -1,4 +1,4 @@
-# Runbook — OMEGA 3.0
+# Runbook — zomega 3.0
 
 ## Redis unavailable during run creation
 
@@ -11,14 +11,14 @@ Expected state: `PENDING_DISPATCH`.
 
 ## Ambiguous provider state
 
-OMEGA sets `BLOCKED / AMBIGUOUS_PROVIDER_STATE` instead of automatically repeating a possibly
+zomega sets `BLOCKED / AMBIGUOUS_PROVIDER_STATE` instead of automatically repeating a possibly
 billable provider request.
 
 Use:
 
 ```bash
-omega reconcile-run --run-id <id> --action refund
-omega reconcile-run --run-id <id> --action settle --charge <credits>
+zomega reconcile-run --run-id <id> --action refund
+zomega reconcile-run --run-id <id> --action settle --charge <credits>
 ```
 
 after provider evidence has been reviewed.
@@ -70,7 +70,7 @@ requires operator reconciliation.
 1. Revoke the affected key.
 2. Create a new least-privilege key or service account.
 3. Review audit events for the compromised key ID.
-4. Rotate `OMEGA_API_KEY_PEPPER` only with a coordinated key-rotation plan because it invalidates
+4. Rotate `zomega_API_KEY_PEPPER` only with a coordinated key-rotation plan because it invalidates
    existing Argon2id verification material.
 
 ## Production secret compromise
@@ -87,9 +87,9 @@ requires operator reconciliation.
 Use only a dedicated restore database.
 
 ```bash
-OMEGA_SOURCE_DATABASE_URL=... \
-OMEGA_BACKUP_FILE=backups/omega-....dump \
-OMEGA_RESTORE_VERIFY_DATABASE_URL=... \
+zomega_SOURCE_DATABASE_URL=... \
+zomega_BACKUP_FILE=backups/zomega-....dump \
+zomega_RESTORE_VERIFY_DATABASE_URL=... \
 ./restore-verify.sh
 ```
 

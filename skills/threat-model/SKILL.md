@@ -1,7 +1,7 @@
-# OMEGA Skill 090: threat-model
+# zomega Skill 090: threat-model
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `threat-model` as a production engineering operation with traceable evidence.

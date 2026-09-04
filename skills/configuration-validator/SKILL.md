@@ -1,7 +1,7 @@
-# OMEGA Skill 015: configuration-validator
+# zomega Skill 015: configuration-validator
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `configuration-validator` as a production engineering operation with traceable evidence.

@@ -7,15 +7,15 @@ install:
 init:
 	alembic upgrade head
 serve:
-	$(PYTHON) -m omega serve
+	$(PYTHON) -m zomega serve
 verify:
 	./verify.sh
 test:
 	$(PYTHON) -m unittest discover -s tests -v
 lint:
-	ruff check omega tests
+	ruff check zomega tests
 typecheck:
-	mypy omega/security.py omega/audit.py omega/key_service.py omega/commercial.py omega/registry.py omega/marketplace.py
+	mypy zomega/security.py zomega/audit.py zomega/key_service.py zomega/commercial.py zomega/registry.py zomega/marketplace.py
 backup:
 	./backup.sh
 restore-verify:

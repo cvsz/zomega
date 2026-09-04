@@ -1,12 +1,12 @@
 # Changelog
 
-All notable OMEGA changes are documented here.
+All notable zomega changes are documented here.
 
 ## [Unreleased]
 
 ### Added
 
-- OMEGA 3.0 commercial and enterprise control-plane APIs.
+- zomega 3.0 commercial and enterprise control-plane APIs.
 - Tenant monthly credit/run quotas enforced transactionally.
 - Per-tenant Agent and Skill allowlists.
 - Subscription and plan administration.
@@ -22,20 +22,20 @@ All notable OMEGA changes are documented here.
 - Checksummed backup evidence and isolated restore verification.
 - Gated disaster-recovery drill workflow.
 - Kubernetes topology spread and PodDisruptionBudgets.
-- OMEGA 2.2 → 3.0 migration compatibility test.
+- zomega 2.2 → 3.0 migration compatibility test.
 
 ### Changed
 
-- OMEGA source/API/Helm/Kubernetes version to 3.0.0.
+- zomega source/API/Helm/Kubernetes version to 3.0.0.
 - Monthly credit limits account for execution charges, open reservations, and marketplace purchases.
 - Wallet reconciliation includes marketplace buyer debits and publisher earnings.
-- Existing active primary keys receive OMEGA 3.0 commercial scopes during migration.
+- Existing active primary keys receive zomega 3.0 commercial scopes during migration.
 - Release type-checking covers commercial, registry, and marketplace modules.
 
 ### Security
 
 - Private-skill manifests use Ed25519 asymmetric verification.
 - Stored skill versions retain the signer key snapshot needed for historical verification.
-- Platform plan/quota mutation requires constant-time validated `X-OMEGA-Admin-Token`.
+- Platform plan/quota mutation requires constant-time validated `X-zomega-Admin-Token`.
 - Service-account role scopes cannot be escalated beyond the selected preset.
 - DR restore verification refuses the configured source database.

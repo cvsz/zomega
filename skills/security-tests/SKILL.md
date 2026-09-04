@@ -1,7 +1,7 @@
-# OMEGA Skill 082: security-tests
+# zomega Skill 082: security-tests
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `security-tests` as a production engineering operation with traceable evidence.

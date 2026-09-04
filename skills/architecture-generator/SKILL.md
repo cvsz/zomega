@@ -1,7 +1,7 @@
-# OMEGA Skill 005: architecture-generator
+# zomega Skill 005: architecture-generator
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `architecture-generator` as a production engineering operation with traceable evidence.

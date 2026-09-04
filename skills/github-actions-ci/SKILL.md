@@ -1,7 +1,7 @@
-# OMEGA Skill 039: github-actions-ci
+# zomega Skill 039: github-actions-ci
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `github-actions-ci` as a production engineering operation with traceable evidence.

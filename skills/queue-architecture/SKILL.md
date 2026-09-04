@@ -1,7 +1,7 @@
-# OMEGA Skill 065: queue-architecture
+# zomega Skill 065: queue-architecture
 
 ## Owner
-`omega-data`
+`zomega-data`
 
 ## Objective
 Execute `queue-architecture` as a production engineering operation with traceable evidence.

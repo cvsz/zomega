@@ -1,7 +1,7 @@
-# OMEGA Skill 070: resource-planner
+# zomega Skill 070: resource-planner
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `resource-planner` as a production engineering operation with traceable evidence.

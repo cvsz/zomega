@@ -1,7 +1,7 @@
-# OMEGA Skill 064: prometheus-metrics
+# zomega Skill 064: prometheus-metrics
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `prometheus-metrics` as a production engineering operation with traceable evidence.

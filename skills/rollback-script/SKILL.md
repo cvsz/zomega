@@ -1,7 +1,7 @@
-# OMEGA Skill 073: rollback-script
+# zomega Skill 073: rollback-script
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `rollback-script` as a production engineering operation with traceable evidence.

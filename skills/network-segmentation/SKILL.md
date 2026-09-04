@@ -1,7 +1,7 @@
-# OMEGA Skill 057: network-segmentation
+# zomega Skill 057: network-segmentation
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `network-segmentation` as a production engineering operation with traceable evidence.

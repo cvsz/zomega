@@ -1,8 +1,8 @@
 id: production-readiness-checker
 version: 1.0.0
-agent: omega-qa
+agent: zomega-qa
 enabled: true
-description: 'OMEGA Skill 076: production-readiness-checker'
+description: 'zomega Skill 076: production-readiness-checker'
 billing:
   mode: fixed
   base_price: 40
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `production-readiness-checker`. Inspect
+prompt: You are the production zomega capability `production-readiness-checker`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

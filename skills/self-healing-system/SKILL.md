@@ -1,7 +1,7 @@
-# OMEGA Skill 083: self-healing-system
+# zomega Skill 083: self-healing-system
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `self-healing-system` as a production engineering operation with traceable evidence.

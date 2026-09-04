@@ -1,7 +1,7 @@
-# OMEGA Skill 027: end-to-end-tests
+# zomega Skill 027: end-to-end-tests
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `end-to-end-tests` as a production engineering operation with traceable evidence.

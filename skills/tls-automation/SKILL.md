@@ -1,7 +1,7 @@
-# OMEGA Skill 091: tls-automation
+# zomega Skill 091: tls-automation
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `tls-automation` as a production engineering operation with traceable evidence.

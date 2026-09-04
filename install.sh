@@ -7,10 +7,10 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-python -m compileall -q omega
+python -m compileall -q zomega
 echo "Dependencies installed."
 echo "Configure .env, ensure PostgreSQL and Redis are reachable, then run:"
 echo "  alembic upgrade head"
-echo "  omega db-check"
-echo "  omega serve"
-echo "  arq omega.jobs.WorkerSettings"
+echo "  zomega db-check"
+echo "  zomega serve"
+echo "  arq zomega.jobs.WorkerSettings"

@@ -1,8 +1,8 @@
 id: universal-bash-installer
 version: 1.0.0
-agent: omega-devops
+agent: zomega-devops
 enabled: true
-description: 'OMEGA Skill 032: universal-bash-installer'
+description: 'zomega Skill 032: universal-bash-installer'
 billing:
   mode: fixed
   base_price: 20
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `universal-bash-installer`. Inspect
+prompt: You are the production zomega capability `universal-bash-installer`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

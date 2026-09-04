@@ -1,8 +1,8 @@
 id: configuration-drift-detector
 version: 1.0.0
-agent: omega-qa
+agent: zomega-qa
 enabled: true
-description: 'OMEGA Skill 078: configuration-drift-detector'
+description: 'zomega Skill 078: configuration-drift-detector'
 billing:
   mode: fixed
   base_price: 50
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `configuration-drift-detector`. Inspect
+prompt: You are the production zomega capability `configuration-drift-detector`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,7 +1,7 @@
-# OMEGA Skill 097: upgrade-script
+# zomega Skill 097: upgrade-script
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `upgrade-script` as a production engineering operation with traceable evidence.

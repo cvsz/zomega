@@ -1,7 +1,7 @@
-# OMEGA Skill 008: autonomous-fix-loop
+# zomega Skill 008: autonomous-fix-loop
 
 ## Owner
-`omega-orchestrator`
+`zomega-orchestrator`
 
 ## Objective
 Execute `autonomous-fix-loop` as a production engineering operation with traceable evidence.

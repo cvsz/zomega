@@ -1,7 +1,7 @@
-# OMEGA Skill 041: grafana-dashboards
+# zomega Skill 041: grafana-dashboards
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `grafana-dashboards` as a production engineering operation with traceable evidence.

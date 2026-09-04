@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-: "${OMEGA_BACKUP_FILE:?OMEGA_BACKUP_FILE required}"
-: "${OMEGA_RESTORE_VERIFY_DATABASE_URL:?OMEGA_RESTORE_VERIFY_DATABASE_URL required}"
+: "${zomega_BACKUP_FILE:?zomega_BACKUP_FILE required}"
+: "${zomega_RESTORE_VERIFY_DATABASE_URL:?zomega_RESTORE_VERIFY_DATABASE_URL required}"
 
-test -f "$OMEGA_BACKUP_FILE"
-test -f "$OMEGA_BACKUP_FILE.sha256"
-sha256sum --check "$OMEGA_BACKUP_FILE.sha256"
+test -f "$zomega_BACKUP_FILE"
+test -f "$zomega_BACKUP_FILE.sha256"
+sha256sum --check "$zomega_BACKUP_FILE.sha256"
 
-RESTORE_URL="${OMEGA_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:}"
-if [[ -n "${OMEGA_SOURCE_DATABASE_URL:-}" ]]; then
-  SOURCE_URL="${OMEGA_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
+RESTORE_URL="${zomega_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:}"
+if [[ -n "${zomega_SOURCE_DATABASE_URL:-}" ]]; then
+  SOURCE_URL="${zomega_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
   if [[ "$SOURCE_URL" == "$RESTORE_URL" ]]; then
     echo "Refusing to restore into source database" >&2
     exit 2
   fi
 fi
 
-pg_restore   --dbname="$RESTORE_URL"   --clean   --if-exists   --no-owner   --no-acl   "$OMEGA_BACKUP_FILE"
+pg_restore   --dbname="$RESTORE_URL"   --clean   --if-exists   --no-owner   --no-acl   "$zomega_BACKUP_FILE"
 
 HEAD="$(psql "$RESTORE_URL" -Atc 'SELECT version_num FROM alembic_version LIMIT 1')"
 test "$HEAD" = "0008"
@@ -38,4 +38,4 @@ WHERE w.reserved_credits <> COALESCE(r.open_reserved, 0)
 ")"
 test "$RESERVATION_MISMATCH" = "0"
 
-printf '%s\n' '{"schema":"omega.restore-verification.v1","status":"PASS","alembic_head":"0008"}'
+printf '%s\n' '{"schema":"zomega.restore-verification.v1","status":"PASS","alembic_head":"0008"}'

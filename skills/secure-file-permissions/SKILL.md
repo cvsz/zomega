@@ -1,7 +1,7 @@
-# OMEGA Skill 079: secure-file-permissions
+# zomega Skill 079: secure-file-permissions
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `secure-file-permissions` as a production engineering operation with traceable evidence.

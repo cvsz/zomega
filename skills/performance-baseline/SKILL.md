@@ -1,7 +1,7 @@
-# OMEGA Skill 060: performance-baseline
+# zomega Skill 060: performance-baseline
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `performance-baseline` as a production engineering operation with traceable evidence.

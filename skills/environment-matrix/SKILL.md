@@ -1,7 +1,7 @@
-# OMEGA Skill 029: environment-matrix
+# zomega Skill 029: environment-matrix
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `environment-matrix` as a production engineering operation with traceable evidence.

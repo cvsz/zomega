@@ -1,7 +1,7 @@
-# OMEGA Skill 032: fastapi-production-setup
+# zomega Skill 032: fastapi-production-setup
 
 ## Owner
-`omega-backend`
+`zomega-backend`
 
 ## Objective
 Execute `fastapi-production-setup` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 061: postgresql-hardening
+# zomega Skill 061: postgresql-hardening
 
 ## Owner
-`omega-data`
+`zomega-data`
 
 ## Objective
 Execute `postgresql-hardening` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 003: api-architecture
+# zomega Skill 003: api-architecture
 
 ## Owner
-`omega-backend`
+`zomega-backend`
 
 ## Objective
 Execute `api-architecture` as a production engineering operation with traceable evidence.

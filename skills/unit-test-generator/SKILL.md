@@ -1,7 +1,7 @@
-# OMEGA Skill 094: unit-test-generator
+# zomega Skill 094: unit-test-generator
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `unit-test-generator` as a production engineering operation with traceable evidence.

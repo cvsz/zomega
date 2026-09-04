@@ -1,18 +1,18 @@
-# Production Deployment — OMEGA 3.0
+# Production Deployment — zomega 3.0
 
 ## Required runtime secrets
 
 - DATABASE_URL
 - REDIS_URL
-- OMEGA_API_KEY_PEPPER
-- OMEGA_ADMIN_TOKEN
+- zomega_API_KEY_PEPPER
+- zomega_ADMIN_TOKEN
 - OPENAI_API_KEY
 - STRIPE_SECRET_KEY
 - STRIPE_WEBHOOK_SECRET
 - STRIPE_PRICE_CREDITS_1000
 - STRIPE_PRICE_CREDITS_5000
 - STRIPE_PRICE_CREDITS_20000
-- OMEGA_PUBLIC_URL
+- zomega_PUBLIC_URL
 
 Inject runtime values through GitHub Environment Secrets plus a Kubernetes secret manager such as
 External Secrets, Vault, or SOPS. Never bake credentials into the image.
@@ -30,14 +30,14 @@ alembic upgrade head
 The Helm chart runs `alembic upgrade head` as a pre-install/pre-upgrade hook. The new API/worker
 version is not rolled out if migration fails.
 
-OMEGA CI also proves a data-bearing upgrade path from the 2.2 schema at `0005` to the 3.0 head,
+zomega CI also proves a data-bearing upgrade path from the 2.2 schema at `0005` to the 3.0 head,
 including expansion of existing primary-key scopes.
 
 ## Runtime processes
 
 ```bash
-omega serve
-arq omega.jobs.WorkerSettings
+zomega serve
+arq zomega.jobs.WorkerSettings
 ```
 
 The worker owns execution plus outbox dispatch, reservation reaping, wallet reconciliation, and
@@ -45,11 +45,11 @@ audit-retention pruning.
 
 ## Kubernetes / Helm
 
-Provision the `omega-runtime` Secret, then deploy an immutable commit-SHA image:
+Provision the `zomega-runtime` Secret, then deploy an immutable commit-SHA image:
 
 ```bash
-helm upgrade --install omega deploy/helm/omega \
-  --namespace omega \
+helm upgrade --install zomega deploy/helm/zomega \
+  --namespace zomega \
   --create-namespace \
   --set image.repository=ghcr.io/cvsz/zomega \
   --set image.tag=<immutable-commit-sha> \
@@ -59,7 +59,7 @@ helm upgrade --install omega deploy/helm/omega \
 
 The production GitHub workflow verifies the GHCR build attestation before deployment.
 
-OMEGA 3.0 includes:
+zomega 3.0 includes:
 
 - two API replicas by default
 - two worker replicas by default
@@ -76,7 +76,7 @@ Secret:
 - `KUBECONFIG_B64`
 
 Variable:
-- `OMEGA_HEALTH_URL`
+- `zomega_HEALTH_URL`
 
 Recommended protection:
 - required reviewer

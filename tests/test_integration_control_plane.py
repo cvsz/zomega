@@ -4,13 +4,13 @@ import unittest
 
 from sqlalchemy import select
 
-@unittest.skipUnless(os.getenv("OMEGA_INTEGRATION") == "1", "integration services not enabled")
+@unittest.skipUnless(os.getenv("zomega_INTEGRATION") == "1", "integration services not enabled")
 class ControlPlaneIntegrationTest(unittest.TestCase):
     def setUp(self):
-        from omega.admin import DEFAULT_SCOPES
-        from omega.db import session_scope
-        from omega.models import Tenant, Wallet, ApiKey
-        from omega.security import generate_api_key, hash_api_key_secret, parse_api_key
+        from zomega.admin import DEFAULT_SCOPES
+        from zomega.db import session_scope
+        from zomega.models import Tenant, Wallet, ApiKey
+        from zomega.security import generate_api_key, hash_api_key_secret, parse_api_key
 
         self.tenant_id = str(uuid.uuid4())
         self.primary_raw = generate_api_key()
@@ -43,9 +43,9 @@ class ControlPlaneIntegrationTest(unittest.TestCase):
             self.primary_id = primary.id
 
     def test_key_create_auth_audit_and_revoke(self):
-        from omega.auth import authenticate
-        from omega.audit import list_audit_events
-        from omega.key_service import create_api_key, create_service_account, list_api_keys, revoke_api_key
+        from zomega.auth import authenticate
+        from zomega.audit import list_audit_events
+        from zomega.key_service import create_api_key, create_service_account, list_api_keys, revoke_api_key
 
         created = create_api_key(
             tenant_id=self.tenant_id,
@@ -53,7 +53,7 @@ class ControlPlaneIntegrationTest(unittest.TestCase):
             name="worker",
             scopes=["runs:read", "skills:run"],
         )
-        self.assertTrue(created["api_key"].startswith("omega_"))
+        self.assertTrue(created["api_key"].startswith("zomega_"))
 
         tenant = authenticate(created["api_key"], "skills:run")
         self.assertEqual(tenant["id"], self.tenant_id)

@@ -1,7 +1,7 @@
-# OMEGA Skill 063: production-readiness-checker
+# zomega Skill 063: production-readiness-checker
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `production-readiness-checker` as a production engineering operation with traceable evidence.

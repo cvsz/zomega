@@ -1,7 +1,7 @@
-# OMEGA Skill 054: makefile-automation
+# zomega Skill 054: makefile-automation
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `makefile-automation` as a production engineering operation with traceable evidence.

@@ -1,4 +1,4 @@
-# Security — OMEGA 3.0
+# Security — zomega 3.0
 
 - Never commit secrets, API keys, private publisher keys, production credentials, or database dumps.
 - Tenant API-key secrets are stored only as Argon2id hashes of secret + server pepper.

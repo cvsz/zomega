@@ -1,4 +1,4 @@
-# Operations — OMEGA 3.0
+# Operations — zomega 3.0
 
 ## Continuous controls
 
@@ -17,7 +17,7 @@ integration, API smoke behavior, CodeQL, dependency/SAST/container/IaC security,
 - inspect FAIL/BLOCKED/PARTIAL runs
 - inspect ambiguous provider states before settlement/refund
 - review wallet reconciliation alerts
-- compare Stripe paid events to OMEGA payment events
+- compare Stripe paid events to zomega payment events
 - inspect outbox retries
 - review tenant quota denials and marketplace purchases
 - review audit-retention and service-account activity

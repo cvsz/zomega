@@ -1,8 +1,8 @@
 id: documentation-generator
 version: 1.0.0
-agent: omega-operator
+agent: zomega-operator
 enabled: true
-description: 'OMEGA Skill 094: documentation-generator'
+description: 'zomega Skill 094: documentation-generator'
 billing:
   mode: fixed
   base_price: 50
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `documentation-generator`. Inspect
+prompt: You are the production zomega capability `documentation-generator`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

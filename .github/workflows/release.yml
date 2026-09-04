@@ -24,9 +24,9 @@ jobs:
       - run: python -m pip install -r requirements.txt -r requirements-dev.txt
       - name: Release gate
         run: |
-          python -m compileall -q omega tests migrations
-          ruff check omega tests
-          mypy omega/security.py omega/audit.py omega/key_service.py omega/commercial.py omega/registry.py omega/marketplace.py
+          python -m compileall -q zomega tests migrations
+          ruff check zomega tests
+          mypy zomega/security.py zomega/audit.py zomega/key_service.py zomega/commercial.py zomega/registry.py zomega/marketplace.py
           python -m unittest discover -s tests -v
       - name: Login to GHCR
         uses: docker/login-action@v3

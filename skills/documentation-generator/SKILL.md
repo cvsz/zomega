@@ -1,7 +1,7 @@
-# OMEGA Skill 025: documentation-generator
+# zomega Skill 025: documentation-generator
 
 ## Owner
-`omega-operator`
+`zomega-operator`
 
 ## Objective
 Execute `documentation-generator` as a production engineering operation with traceable evidence.

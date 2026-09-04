@@ -1,7 +1,7 @@
-# OMEGA Skill 089: test-strategy
+# zomega Skill 089: test-strategy
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `test-strategy` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 099: webhook-hardening
+# zomega Skill 099: webhook-hardening
 
 ## Owner
-`omega-backend`
+`zomega-backend`
 
 ## Objective
 Execute `webhook-hardening` as a production engineering operation with traceable evidence.

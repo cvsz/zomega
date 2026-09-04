@@ -1,8 +1,8 @@
 id: github-actions-ci
 version: 1.0.0
-agent: omega-release
+agent: zomega-release
 enabled: true
-description: 'OMEGA Skill 038: github-actions-ci'
+description: 'zomega Skill 038: github-actions-ci'
 billing:
   mode: fixed
   base_price: 50
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `github-actions-ci`. Inspect supplied
+prompt: You are the production zomega capability `github-actions-ci`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,8 +1,8 @@
 id: secret-rotation-system
 version: 1.0.0
-agent: omega-security
+agent: zomega-security
 enabled: true
-description: 'OMEGA Skill 016: secret-rotation-system'
+description: 'zomega Skill 016: secret-rotation-system'
 billing:
   mode: fixed
   base_price: 20
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `secret-rotation-system`. Inspect
+prompt: You are the production zomega capability `secret-rotation-system`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,7 +1,7 @@
-# OMEGA Skill 093: uninstaller
+# zomega Skill 093: uninstaller
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `uninstaller` as a production engineering operation with traceable evidence.

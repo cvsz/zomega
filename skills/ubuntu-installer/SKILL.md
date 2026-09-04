@@ -1,7 +1,7 @@
-# OMEGA Skill 092: ubuntu-installer
+# zomega Skill 092: ubuntu-installer
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `ubuntu-installer` as a production engineering operation with traceable evidence.

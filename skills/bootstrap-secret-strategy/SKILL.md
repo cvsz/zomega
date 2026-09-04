@@ -1,7 +1,7 @@
-# OMEGA Skill 010: bootstrap-secret-strategy
+# zomega Skill 010: bootstrap-secret-strategy
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `bootstrap-secret-strategy` as a production engineering operation with traceable evidence.

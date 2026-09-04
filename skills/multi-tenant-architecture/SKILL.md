@@ -1,7 +1,7 @@
-# OMEGA Skill 056: multi-tenant-architecture
+# zomega Skill 056: multi-tenant-architecture
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `multi-tenant-architecture` as a production engineering operation with traceable evidence.

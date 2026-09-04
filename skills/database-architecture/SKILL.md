@@ -1,7 +1,7 @@
-# OMEGA Skill 018: database-architecture
+# zomega Skill 018: database-architecture
 
 ## Owner
-`omega-data`
+`zomega-data`
 
 ## Objective
 Execute `database-architecture` as a production engineering operation with traceable evidence.

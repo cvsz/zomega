@@ -1,7 +1,7 @@
-# OMEGA Skill 081: security-baseline
+# zomega Skill 081: security-baseline
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `security-baseline` as a production engineering operation with traceable evidence.

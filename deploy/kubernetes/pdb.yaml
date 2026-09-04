@@ -1,19 +1,19 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: omega-api
-  namespace: omega
+  name: zomega-api
+  namespace: zomega
 spec:
   minAvailable: 1
   selector:
-    matchLabels: {app: omega-api}
+    matchLabels: {app: zomega-api}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: omega-worker
-  namespace: omega
+  name: zomega-worker
+  namespace: zomega
 spec:
   minAvailable: 1
   selector:
-    matchLabels: {app: omega-worker}
+    matchLabels: {app: zomega-worker}

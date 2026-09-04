@@ -1,8 +1,8 @@
 id: dockerfile-generator
 version: 1.0.0
-agent: omega-devops
+agent: zomega-devops
 enabled: true
-description: 'OMEGA Skill 025: dockerfile-generator'
+description: 'zomega Skill 025: dockerfile-generator'
 billing:
   mode: fixed
   base_price: 25
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `dockerfile-generator`. Inspect supplied
+prompt: You are the production zomega capability `dockerfile-generator`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

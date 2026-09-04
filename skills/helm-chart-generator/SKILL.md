@@ -1,7 +1,7 @@
-# OMEGA Skill 043: helm-chart-generator
+# zomega Skill 043: helm-chart-generator
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `helm-chart-generator` as a production engineering operation with traceable evidence.

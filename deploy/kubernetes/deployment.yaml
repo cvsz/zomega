@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: omega-api
-  namespace: omega
+  name: zomega-api
+  namespace: zomega
 spec:
   replicas: 2
-  selector: {matchLabels: {app: omega-api}}
+  selector: {matchLabels: {app: zomega-api}}
   template:
-    metadata: {labels: {app: omega-api}}
+    metadata: {labels: {app: zomega-api}}
     spec:
-      serviceAccountName: omega
+      serviceAccountName: zomega
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -19,14 +19,14 @@ spec:
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
-            matchLabels: {app: omega-api}
+            matchLabels: {app: zomega-api}
       containers:
         - name: api
           image: ghcr.io/cvsz/zomega:3.0.0
           imagePullPolicy: IfNotPresent
-          command: ["python","-m","omega","serve"]
+          command: ["python","-m","zomega","serve"]
           ports: [{name: http, containerPort: 8000}]
-          envFrom: [{secretRef: {name: omega-runtime}}]
+          envFrom: [{secretRef: {name: zomega-runtime}}]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -54,15 +54,15 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: omega-worker
-  namespace: omega
+  name: zomega-worker
+  namespace: zomega
 spec:
   replicas: 2
-  selector: {matchLabels: {app: omega-worker}}
+  selector: {matchLabels: {app: zomega-worker}}
   template:
-    metadata: {labels: {app: omega-worker}}
+    metadata: {labels: {app: zomega-worker}}
     spec:
-      serviceAccountName: omega
+      serviceAccountName: zomega
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -72,13 +72,13 @@ spec:
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
-            matchLabels: {app: omega-worker}
+            matchLabels: {app: zomega-worker}
       containers:
         - name: worker
           image: ghcr.io/cvsz/zomega:3.0.0
           imagePullPolicy: IfNotPresent
-          command: ["arq","omega.jobs.WorkerSettings"]
-          envFrom: [{secretRef: {name: omega-runtime}}]
+          command: ["arq","zomega.jobs.WorkerSettings"]
+          envFrom: [{secretRef: {name: zomega-runtime}}]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

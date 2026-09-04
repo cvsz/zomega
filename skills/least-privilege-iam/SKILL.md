@@ -1,7 +1,7 @@
-# OMEGA Skill 050: least-privilege-iam
+# zomega Skill 050: least-privilege-iam
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `least-privilege-iam` as a production engineering operation with traceable evidence.

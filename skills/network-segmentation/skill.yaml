@@ -1,8 +1,8 @@
 id: network-segmentation
 version: 1.0.0
-agent: omega-platform
+agent: zomega-platform
 enabled: true
-description: 'OMEGA Skill 054: network-segmentation'
+description: 'zomega Skill 054: network-segmentation'
 billing:
   mode: fixed
   base_price: 50
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `network-segmentation`. Inspect supplied
+prompt: You are the production zomega capability `network-segmentation`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

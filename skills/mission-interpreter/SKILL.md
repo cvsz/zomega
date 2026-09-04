@@ -1,7 +1,7 @@
-# OMEGA Skill 055: mission-interpreter
+# zomega Skill 055: mission-interpreter
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `mission-interpreter` as a production engineering operation with traceable evidence.

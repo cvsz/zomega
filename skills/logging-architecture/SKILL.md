@@ -1,7 +1,7 @@
-# OMEGA Skill 053: logging-architecture
+# zomega Skill 053: logging-architecture
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `logging-architecture` as a production engineering operation with traceable evidence.

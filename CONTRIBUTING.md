@@ -1,6 +1,6 @@
-# Contributing to OMEGA
+# Contributing to zomega
 
-Thank you for helping improve OMEGA. Keep changes focused, reviewable, secure, and
+Thank you for helping improve zomega. Keep changes focused, reviewable, secure, and
 compatible with the paid-before-use and multi-tenant service boundaries.
 
 ## Development workflow
@@ -8,7 +8,7 @@ compatible with the paid-before-use and multi-tenant service boundaries.
 1. Fork the repository or create a feature branch from `main`.
 2. Review the relevant architecture, security, and operational documentation.
 3. Add or update tests for behavior changes.
-4. Run `make test` and `python3 -m compileall -q omega tests`.
+4. Run `make test` and `python3 -m compileall -q zomega tests`.
 5. Run `./verify.sh` when PostgreSQL, Redis, and the required environment are available.
 6. Update documentation and `CHANGELOG.md` when relevant.
 7. Open a pull request and complete the repository checklist.

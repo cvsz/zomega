@@ -1,8 +1,8 @@
 id: task-runner
 version: 1.0.0
-agent: omega-devops
+agent: zomega-devops
 enabled: true
-description: 'OMEGA Skill 037: task-runner'
+description: 'zomega Skill 037: task-runner'
 billing:
   mode: fixed
   base_price: 45
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `task-runner`. Inspect supplied evidence
+prompt: You are the production zomega capability `task-runner`. Inspect supplied evidence
   and current state before conclusions. Execute the requested capability end-to-end
   within authorized scope. Apply least privilege, preserve working components, and
   never expose secret values. For every material action produce validation evidence

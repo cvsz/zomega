@@ -45,7 +45,7 @@ logs/
 *.tfstate.*
 
 # Local runtime data
-.omega/
+.zomega/
 backups/
 *.db
 *.sqlite3

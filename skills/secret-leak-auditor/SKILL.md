@@ -1,7 +1,7 @@
-# OMEGA Skill 076: secret-leak-auditor
+# zomega Skill 076: secret-leak-auditor
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `secret-leak-auditor` as a production engineering operation with traceable evidence.

@@ -2,7 +2,7 @@
 
 ## Publisher identity
 
-A tenant registers an Ed25519 public key. OMEGA validates that the supplied PEM contains an Ed25519
+A tenant registers an Ed25519 public key. zomega validates that the supplied PEM contains an Ed25519
 public key before accepting it.
 
 ## Manifest canonicalization
@@ -10,7 +10,7 @@ public key before accepting it.
 Private skill manifests are serialized as sorted compact UTF-8 JSON. Publishers sign those exact
 bytes with their Ed25519 private key.
 
-OMEGA stores:
+zomega stores:
 
 - canonical manifest content
 - SHA-256 content-integrity digest

@@ -1,7 +1,7 @@
-# OMEGA Skill 100: zero-trust-architecture
+# zomega Skill 100: zero-trust-architecture
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `zero-trust-architecture` as a production engineering operation with traceable evidence.

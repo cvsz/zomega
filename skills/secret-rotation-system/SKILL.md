@@ -1,7 +1,7 @@
-# OMEGA Skill 078: secret-rotation-system
+# zomega Skill 078: secret-rotation-system
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `secret-rotation-system` as a production engineering operation with traceable evidence.

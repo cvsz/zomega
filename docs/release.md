@@ -1,4 +1,4 @@
-# OMEGA Release
+# zomega Release
 
 ## Versioning
 

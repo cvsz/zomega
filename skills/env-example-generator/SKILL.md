@@ -1,7 +1,7 @@
-# OMEGA Skill 028: env-example-generator
+# zomega Skill 028: env-example-generator
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `env-example-generator` as a production engineering operation with traceable evidence.

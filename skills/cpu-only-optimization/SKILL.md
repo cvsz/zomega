@@ -1,7 +1,7 @@
-# OMEGA Skill 017: cpu-only-optimization
+# zomega Skill 017: cpu-only-optimization
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `cpu-only-optimization` as a production engineering operation with traceable evidence.

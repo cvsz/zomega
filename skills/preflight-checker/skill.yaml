@@ -1,8 +1,8 @@
 id: preflight-checker
 version: 1.0.0
-agent: omega-architect
+agent: zomega-architect
 enabled: true
-description: 'OMEGA Skill 075: preflight-checker'
+description: 'zomega Skill 075: preflight-checker'
 billing:
   mode: fixed
   base_price: 35
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `preflight-checker`. Inspect supplied
+prompt: You are the production zomega capability `preflight-checker`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

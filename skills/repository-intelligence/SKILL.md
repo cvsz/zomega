@@ -1,7 +1,7 @@
-# OMEGA Skill 069: repository-intelligence
+# zomega Skill 069: repository-intelligence
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `repository-intelligence` as a production engineering operation with traceable evidence.

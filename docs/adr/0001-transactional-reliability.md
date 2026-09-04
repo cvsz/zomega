@@ -2,11 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-09-04
-- Decision owners: OMEGA maintainers
+- Decision owners: zomega maintainers
 
 ## Context
 
-OMEGA performs real-money prepaid billing before asynchronous AI execution. The previous sequence
+zomega performs real-money prepaid billing before asynchronous AI execution. The previous sequence
 committed payment events separately from wallet credits and committed run reservations before Redis
 enqueue. Those boundaries allowed paid-but-uncredited events and reserved-but-undelivered runs.
 
@@ -15,7 +15,7 @@ succeeded immediately before a process crash.
 
 ## Decision
 
-OMEGA 2.1 adopts PostgreSQL as the authoritative transaction boundary.
+zomega 2.1 adopts PostgreSQL as the authoritative transaction boundary.
 
 ### Payment
 

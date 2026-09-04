@@ -3,11 +3,11 @@ import unittest
 from unittest.mock import patch
 
 ENV = {
-    "OMEGA_PUBLIC_URL": "https://example.invalid",
-    "DATABASE_URL": "postgresql+psycopg://omega:omega@localhost:5432/omega",
+    "zomega_PUBLIC_URL": "https://example.invalid",
+    "DATABASE_URL": "postgresql+psycopg://zomega:zomega@localhost:5432/zomega",
     "REDIS_URL": "redis://localhost:6379/0",
-    "OMEGA_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
-    "OMEGA_ADMIN_TOKEN": "test-admin",
+    "zomega_API_KEY_PEPPER": "test-pepper-test-pepper-test-pepper-test-pepper",
+    "zomega_ADMIN_TOKEN": "test-admin",
     "OPENAI_API_KEY": "test",
     "STRIPE_SECRET_KEY": "test",
     "STRIPE_WEBHOOK_SECRET": "test",
@@ -19,7 +19,7 @@ ENV = {
 class SecurityTest(unittest.TestCase):
     @patch.dict(os.environ, ENV, clear=False)
     def test_argon2_api_key_hash_is_salted_and_verifiable(self):
-        from omega.security import (
+        from zomega.security import (
             generate_api_key,
             hash_api_key_secret,
             parse_api_key,
@@ -37,9 +37,9 @@ class SecurityTest(unittest.TestCase):
 
     @patch.dict(os.environ, ENV, clear=False)
     def test_api_key_parser_rejects_legacy_format(self):
-        from omega.security import parse_api_key
+        from zomega.security import parse_api_key
         with self.assertRaises(ValueError):
-            parse_api_key("omega_" + "x" * 48)
+            parse_api_key("zomega_" + "x" * 48)
 
 if __name__ == "__main__":
     unittest.main()

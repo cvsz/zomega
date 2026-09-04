@@ -1,7 +1,7 @@
-# OMEGA Skill 026: encryption-architecture
+# zomega Skill 026: encryption-architecture
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `encryption-architecture` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 048: kubernetes-deployment-generator
+# zomega Skill 048: kubernetes-deployment-generator
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `kubernetes-deployment-generator` as a production engineering operation with traceable evidence.

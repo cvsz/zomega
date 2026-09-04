@@ -4,4 +4,4 @@ set -Eeuo pipefail
 SRC="${1:?Usage: restore.sh backups/file.dump}"
 pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" "$SRC"
 alembic upgrade head
-python3 -m omega db-check
+python3 -m zomega db-check

@@ -1,7 +1,7 @@
-# OMEGA Skill 084: slo-engineering
+# zomega Skill 084: slo-engineering
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `slo-engineering` as a production engineering operation with traceable evidence.

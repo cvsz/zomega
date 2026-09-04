@@ -1,7 +1,7 @@
-# OMEGA Skill 002: ansible-provisioning
+# zomega Skill 002: ansible-provisioning
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `ansible-provisioning` as a production engineering operation with traceable evidence.

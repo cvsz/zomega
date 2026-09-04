@@ -30,9 +30,9 @@ jobs:
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: Python SAST
-        run: bandit -q -r omega -x tests
+        run: bandit -q -r zomega -x tests
       - name: Build production image
-        run: docker build --pull -t omega-security-scan:${{ github.sha }} .
+        run: docker build --pull -t zomega-security-scan:${{ github.sha }} .
       - name: Filesystem, secret, dependency and IaC scan
         uses: aquasecurity/trivy-action@v0.35.0
         with:
@@ -45,7 +45,7 @@ jobs:
       - name: Container image scan
         uses: aquasecurity/trivy-action@v0.35.0
         with:
-          image-ref: omega-security-scan:${{ github.sha }}
+          image-ref: zomega-security-scan:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: true
@@ -54,4 +54,4 @@ jobs:
         with:
           path: .
           format: spdx-json
-          artifact-name: omega-sbom.spdx.json
+          artifact-name: zomega-sbom.spdx.json

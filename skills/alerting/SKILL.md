@@ -1,7 +1,7 @@
-# OMEGA Skill 001: alerting
+# zomega Skill 001: alerting
 
 ## Owner
-`omega-sre`
+`zomega-sre`
 
 ## Objective
 Execute `alerting` as a production engineering operation with traceable evidence.

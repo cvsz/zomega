@@ -1,8 +1,8 @@
-# OMEGA Production 3.0
+# zomega Production 3.0
 
-OMEGA is a paid-before-use, multi-tenant Agents + Skills platform with 12 specialized Agents and 100 billable Skills.
+zomega is a paid-before-use, multi-tenant Agents + Skills platform with 12 specialized Agents and 100 billable Skills.
 
-OMEGA 3.0 completes the source-side commercial and enterprise baseline on top of the transactional
+zomega 3.0 completes the source-side commercial and enterprise baseline on top of the transactional
 billing and control-plane foundations from 2.x.
 
 ## Core invariants
@@ -22,7 +22,7 @@ API key / service account
 
 No billable run is dispatched unless its reservation and durable queue intent commit successfully.
 
-## OMEGA 3.0 capabilities
+## zomega 3.0 capabilities
 
 - Argon2id API keys with indexed public locators
 - tenant self-service API-key lifecycle
@@ -49,7 +49,7 @@ Primary tenant keys can create scoped service accounts:
 
 ```http
 POST /v1/service-accounts
-Authorization: Bearer omega_...
+Authorization: Bearer zomega_...
 Content-Type: application/json
 
 {"name":"automation","role":"operator"}
@@ -71,14 +71,14 @@ Tenant dashboard:
 
 ```http
 GET /v1/dashboard
-Authorization: Bearer omega_...
+Authorization: Bearer zomega_...
 ```
 
 Platform-admin quota policy:
 
 ```http
 PUT /v1/admin/tenants/{tenant_id}/control
-X-OMEGA-Admin-Token: ...
+X-zomega-Admin-Token: ...
 Content-Type: application/json
 
 {
@@ -96,18 +96,18 @@ lock scoped to tenant + month.
 ## Signed private skills
 
 Publishers register an Ed25519 public key and submit canonical JSON manifests signed with the matching
-private key. OMEGA stores the manifest hash, signature, and signer public-key snapshot.
+private key. zomega stores the manifest hash, signature, and signer public-key snapshot.
 
 ```http
 POST /v1/private-skills
-Authorization: Bearer omega_...
+Authorization: Bearer zomega_...
 ```
 
 Verify a stored version:
 
 ```http
 GET /v1/private-skills/{skill_version_id}/verify
-Authorization: Bearer omega_...
+Authorization: Bearer zomega_...
 ```
 
 ## Marketplace
@@ -139,12 +139,12 @@ The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manif
 Restore verification requires a dedicated disposable restore database:
 
 ```bash
-OMEGA_BACKUP_FILE=backups/omega-....dump \
-OMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../omega_restore \
+zomega_BACKUP_FILE=backups/zomega-....dump \
+zomega_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
 make restore-verify
 ```
 
-The script refuses to restore into `OMEGA_SOURCE_DATABASE_URL` when supplied.
+The script refuses to restore into `zomega_SOURCE_DATABASE_URL` when supplied.
 
 GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
 `DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
@@ -161,7 +161,7 @@ make verify
 CI additionally proves:
 
 - fresh migration through Alembic head `0008`
-- OMEGA 2.2 → 3.0 primary-key scope upgrade compatibility
+- zomega 2.2 → 3.0 primary-key scope upgrade compatibility
 - PostgreSQL/Redis billing, control-plane, quota, registry, marketplace integration
 - Ed25519 signature verification
 - marketplace buyer and publisher reconciliation

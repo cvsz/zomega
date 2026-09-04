@@ -1,7 +1,7 @@
-# OMEGA Skill 024: dockerfile-generator
+# zomega Skill 024: dockerfile-generator
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `dockerfile-generator` as a production engineering operation with traceable evidence.

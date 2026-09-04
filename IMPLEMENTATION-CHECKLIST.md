@@ -1,8 +1,8 @@
-# OMEGA Implementation Checklist
+# zomega Implementation Checklist
 
 ## Repository/source identity
 
-- [x] OMEGA / zomega repository identity
+- [x] zomega / zomega repository identity
 - [x] source/API/Helm/Kubernetes release aligned at 3.0.0
 - [x] changelog, roadmap, architecture and runbooks maintained
 - [ ] confirm GitHub repository description/topics/homepage/license metadata in repository settings
@@ -63,7 +63,7 @@
 - [x] marketplace reconciliation integration
 - [x] API smoke test
 - [x] migration round-trip
-- [x] OMEGA 2.2 → 3.0 upgrade test
+- [x] zomega 2.2 → 3.0 upgrade test
 - [x] CodeQL/dependency review/pip-audit/Bandit/Trivy/SBOM workflows
 
 ## Deployment / DR
@@ -92,7 +92,7 @@
 
 ## Final evidence
 
-- [ ] OMEGA 3.0 PR CI/Security/CodeQL/Dependency Review pass
+- [ ] zomega 3.0 PR CI/Security/CodeQL/Dependency Review pass
 - [x] fresh database bootstrap is covered by CI
 - [x] upgrade compatibility is covered by CI
 - [ ] live Stripe/OpenAI credentials configured through secret management

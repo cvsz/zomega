@@ -1,7 +1,7 @@
-# OMEGA Skill 044: idempotency-auditor
+# zomega Skill 044: idempotency-auditor
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `idempotency-auditor` as a production engineering operation with traceable evidence.

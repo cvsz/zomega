@@ -1,8 +1,8 @@
 id: node-production-setup
 version: 1.0.0
-agent: omega-backend
+agent: zomega-backend
 enabled: true
-description: 'OMEGA Skill 048: node-production-setup'
+description: 'zomega Skill 048: node-production-setup'
 billing:
   mode: fixed
   base_price: 20
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `node-production-setup`. Inspect supplied
+prompt: You are the production zomega capability `node-production-setup`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

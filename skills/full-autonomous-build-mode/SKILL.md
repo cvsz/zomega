@@ -1,7 +1,7 @@
-# OMEGA Skill 037: full-autonomous-build-mode
+# zomega Skill 037: full-autonomous-build-mode
 
 ## Owner
-`omega-orchestrator`
+`zomega-orchestrator`
 
 ## Objective
 Execute `full-autonomous-build-mode` as a production engineering operation with traceable evidence.

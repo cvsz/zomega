@@ -1,7 +1,7 @@
-# OMEGA Skill 038: gap-analysis
+# zomega Skill 038: gap-analysis
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `gap-analysis` as a production engineering operation with traceable evidence.

@@ -1,6 +1,6 @@
 # Commercial Control Plane
 
-OMEGA 3.0 enforces commercial limits before a billable run is admitted.
+zomega 3.0 enforces commercial limits before a billable run is admitted.
 
 ## Tenant controls
 

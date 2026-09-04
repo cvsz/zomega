@@ -1,7 +1,7 @@
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from omega.config import settings
-from omega.models import Base
+from zomega.config import settings
+from zomega.models import Base
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

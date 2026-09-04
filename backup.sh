@@ -8,7 +8,7 @@ chmod 700 "$BACKUP_DIR"
 
 PG_URL="${DATABASE_URL/postgresql+psycopg:/postgresql:}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-DUMP="$BACKUP_DIR/omega-$STAMP.dump"
+DUMP="$BACKUP_DIR/zomega-$STAMP.dump"
 CHECKSUM="$DUMP.sha256"
 MANIFEST="$DUMP.json"
 
@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 dump, checksum, manifest = sys.argv[1:]
 sha256 = open(checksum, encoding="utf-8").read().split()[0]
 payload = {
-    "schema": "omega.backup-evidence.v1",
+    "schema": "zomega.backup-evidence.v1",
     "created_at": datetime.now(timezone.utc).isoformat(),
     "dump": os.path.basename(dump),
     "bytes": os.path.getsize(dump),

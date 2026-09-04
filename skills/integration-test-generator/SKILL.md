@@ -1,7 +1,7 @@
-# OMEGA Skill 047: integration-test-generator
+# zomega Skill 047: integration-test-generator
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `integration-test-generator` as a production engineering operation with traceable evidence.

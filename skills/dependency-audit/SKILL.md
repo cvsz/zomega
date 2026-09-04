@@ -1,7 +1,7 @@
-# OMEGA Skill 020: dependency-audit
+# zomega Skill 020: dependency-audit
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `dependency-audit` as a production engineering operation with traceable evidence.

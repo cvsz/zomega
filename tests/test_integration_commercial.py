@@ -8,13 +8,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import HTTPException
 
-@unittest.skipUnless(os.getenv("OMEGA_INTEGRATION") == "1", "integration services not enabled")
+@unittest.skipUnless(os.getenv("zomega_INTEGRATION") == "1", "integration services not enabled")
 class CommercialIntegrationTest(unittest.TestCase):
     def _tenant(self, name: str, credits: int) -> tuple[str, str]:
-        from omega.admin import DEFAULT_SCOPES
-        from omega.db import session_scope
-        from omega.models import Tenant, Wallet, ApiKey, WalletLedger
-        from omega.security import generate_api_key, parse_api_key, hash_api_key_secret
+        from zomega.admin import DEFAULT_SCOPES
+        from zomega.db import session_scope
+        from zomega.models import Tenant, Wallet, ApiKey, WalletLedger
+        from zomega.security import generate_api_key, parse_api_key, hash_api_key_secret
 
         tenant_id = str(uuid.uuid4())
         raw = generate_api_key()
@@ -50,9 +50,9 @@ class CommercialIntegrationTest(unittest.TestCase):
             return tenant_id, key.id
 
     def test_quota_subscription_and_dashboard(self):
-        from omega.catalog import load_skills
-        from omega.commercial import set_control, set_subscription, dashboard_summary
-        from omega.run_service import create_skill_run
+        from zomega.catalog import load_skills
+        from zomega.commercial import set_control, set_subscription, dashboard_summary
+        from zomega.run_service import create_skill_run
 
         tenant_id, _ = self._tenant("Quota Tenant", 5000)
         skill_id = "repository-intelligence"
@@ -91,14 +91,14 @@ class CommercialIntegrationTest(unittest.TestCase):
         self.assertEqual(dashboard["control"]["monthly_run_limit"], 1)
 
     def test_signed_registry_marketplace_purchase_and_reconciliation(self):
-        from omega.billing import reconcile_wallet
-        from omega.db import session_scope
-        from omega.models import PrivateSkillGrant, MarketplaceLedger
-        from omega.registry import (
+        from zomega.billing import reconcile_wallet
+        from zomega.db import session_scope
+        from zomega.models import PrivateSkillGrant, MarketplaceLedger
+        from zomega.registry import (
             canonical_manifest, create_or_update_publisher, publish_skill, list_granted_skills,
             verify_skill_version
         )
-        from omega.marketplace import (
+        from zomega.marketplace import (
             create_listing, purchase_listing, publisher_earnings
         )
 

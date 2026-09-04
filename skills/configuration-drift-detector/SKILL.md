@@ -1,7 +1,7 @@
-# OMEGA Skill 014: configuration-drift-detector
+# zomega Skill 014: configuration-drift-detector
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `configuration-drift-detector` as a production engineering operation with traceable evidence.

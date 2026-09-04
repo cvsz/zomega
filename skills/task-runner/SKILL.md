@@ -1,7 +1,7 @@
-# OMEGA Skill 087: task-runner
+# zomega Skill 087: task-runner
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `task-runner` as a production engineering operation with traceable evidence.

@@ -1,7 +1,7 @@
-# OMEGA Skill 019: database-migration-safety
+# zomega Skill 019: database-migration-safety
 
 ## Owner
-`omega-data`
+`zomega-data`
 
 ## Objective
 Execute `database-migration-safety` as a production engineering operation with traceable evidence.

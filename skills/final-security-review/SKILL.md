@@ -1,7 +1,7 @@
-# OMEGA Skill 034: final-security-review
+# zomega Skill 034: final-security-review
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `final-security-review` as a production engineering operation with traceable evidence.

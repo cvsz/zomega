@@ -1,7 +1,7 @@
-# OMEGA Skill 051: linux-service-installer
+# zomega Skill 051: linux-service-installer
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `linux-service-installer` as a production engineering operation with traceable evidence.

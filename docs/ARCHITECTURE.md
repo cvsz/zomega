@@ -1,21 +1,21 @@
-# Production Architecture — OMEGA 3.0
+# Production Architecture — zomega 3.0
 
-OMEGA uses PostgreSQL as the source of truth, Redis/ARQ for job delivery, Stripe Checkout for
+zomega uses PostgreSQL as the source of truth, Redis/ARQ for job delivery, Stripe Checkout for
 prepaid credit purchase, and OpenAI Responses API for AI execution.
 
 ## Identity and authorization
 
-OMEGA API keys have the form:
+zomega API keys have the form:
 
 ```text
-omega_<public-locator>_<secret>
+zomega_<public-locator>_<secret>
 ```
 
 The locator supports indexed lookup. Only an Argon2id hash of secret + server pepper is stored.
 Tenant routes enforce scopes, and service accounts may use predefined RBAC role presets whose scope
 sets cannot be escalated beyond the selected role.
 
-Platform-level plan/quota mutation uses a separate `X-OMEGA-Admin-Token` validated with
+Platform-level plan/quota mutation uses a separate `X-zomega-Admin-Token` validated with
 constant-time comparison.
 
 ## Money path
@@ -23,7 +23,7 @@ constant-time comparison.
 1. tenant selects a server-owned Stripe package
 2. Stripe Checkout is created from configured Price IDs
 3. Stripe sends a signed webhook
-4. OMEGA validates signature and package metadata
+4. zomega validates signature and package metadata
 5. provider event insertion, wallet credit, and financial ledger commit atomically
 6. duplicate provider events are idempotent
 

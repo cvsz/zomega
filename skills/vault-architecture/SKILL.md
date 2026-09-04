@@ -1,7 +1,7 @@
-# OMEGA Skill 098: vault-architecture
+# zomega Skill 098: vault-architecture
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `vault-architecture` as a production engineering operation with traceable evidence.

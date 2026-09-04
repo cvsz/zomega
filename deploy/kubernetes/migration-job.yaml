@@ -1,17 +1,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: omega-migrate
-  namespace: omega
+  name: zomega-migrate
+  namespace: zomega
 spec:
   backoffLimit: 2
   ttlSecondsAfterFinished: 300
   template:
     metadata:
-      labels: {app: omega-migrate}
+      labels: {app: zomega-migrate}
     spec:
       restartPolicy: Never
-      serviceAccountName: omega
+      serviceAccountName: zomega
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -20,7 +20,7 @@ spec:
         - name: migrate
           image: ghcr.io/cvsz/zomega:3.0.0
           command: ["alembic","upgrade","head"]
-          envFrom: [{secretRef: {name: omega-runtime}}]
+          envFrom: [{secretRef: {name: zomega-runtime}}]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

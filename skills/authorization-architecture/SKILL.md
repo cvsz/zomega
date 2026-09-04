@@ -1,7 +1,7 @@
-# OMEGA Skill 007: authorization-architecture
+# zomega Skill 007: authorization-architecture
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `authorization-architecture` as a production engineering operation with traceable evidence.

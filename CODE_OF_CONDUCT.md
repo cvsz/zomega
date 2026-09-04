@@ -29,5 +29,5 @@ permanently restrict participation when necessary to protect the community.
 
 ## Scope
 
-This Code of Conduct applies within project spaces and when representing OMEGA in
+This Code of Conduct applies within project spaces and when representing zomega in
 public spaces.

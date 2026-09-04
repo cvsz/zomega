@@ -1,5 +1,5 @@
 import unittest
-from omega.state import validate_transition, is_terminal
+from zomega.state import validate_transition, is_terminal
 
 class StateTest(unittest.TestCase):
     def test_valid_lifecycle(self):

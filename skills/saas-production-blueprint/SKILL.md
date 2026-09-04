@@ -1,7 +1,7 @@
-# OMEGA Skill 074: saas-production-blueprint
+# zomega Skill 074: saas-production-blueprint
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `saas-production-blueprint` as a production engineering operation with traceable evidence.

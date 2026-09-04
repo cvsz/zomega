@@ -1,7 +1,7 @@
-# OMEGA Skill 072: reverse-proxy
+# zomega Skill 072: reverse-proxy
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `reverse-proxy` as a production engineering operation with traceable evidence.

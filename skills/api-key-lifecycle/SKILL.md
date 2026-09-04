@@ -1,7 +1,7 @@
-# OMEGA Skill 004: api-key-lifecycle
+# zomega Skill 004: api-key-lifecycle
 
 ## Owner
-`omega-architect`
+`zomega-architect`
 
 ## Objective
 Execute `api-key-lifecycle` as a production engineering operation with traceable evidence.

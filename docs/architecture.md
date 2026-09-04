@@ -1,4 +1,4 @@
-# OMEGA Architecture
+# zomega Architecture
 
 This document is the repository-level architecture entrypoint. The detailed service
 architecture and operational boundaries are maintained in
@@ -6,7 +6,7 @@ architecture and operational boundaries are maintained in
 
 ## System context
 
-Authenticated tenants submit Agent and Skill runs to the OMEGA API. The API checks
+Authenticated tenants submit Agent and Skill runs to the zomega API. The API checks
 tenant authorization, entitlements, rate limits, pricing, and available credits
 before reserving funds and enqueueing durable work.
 

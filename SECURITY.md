@@ -1,6 +1,6 @@
 # Security Policy
 
-Security is part of OMEGA's delivery baseline. The service handles tenant data,
+Security is part of zomega's delivery baseline. The service handles tenant data,
 authorization credentials, paid credits, third-party API keys, and execution results;
 security-sensitive behavior must fail closed and remain auditable.
 

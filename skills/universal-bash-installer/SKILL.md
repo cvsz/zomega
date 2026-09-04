@@ -1,7 +1,7 @@
-# OMEGA Skill 095: universal-bash-installer
+# zomega Skill 095: universal-bash-installer
 
 ## Owner
-`omega-devops`
+`zomega-devops`
 
 ## Objective
 Execute `universal-bash-installer` as a production engineering operation with traceable evidence.

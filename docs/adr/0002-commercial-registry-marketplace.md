@@ -5,7 +5,7 @@
 
 ## Decision
 
-OMEGA uses PostgreSQL as the transaction boundary for commercial admission and marketplace
+zomega uses PostgreSQL as the transaction boundary for commercial admission and marketplace
 settlement.
 
 Tenant run/spend limits are checked while holding a tenant-month advisory transaction lock.
@@ -22,5 +22,5 @@ verification capability.
 - marketplace retries are idempotent
 - marketplace revenue share becomes spendable tenant credit for publishers
 - platform revenue remains explicit accounting
-- publisher private keys never enter OMEGA
+- publisher private keys never enter zomega
 - multi-region correctness still depends on the PostgreSQL topology selected by operators

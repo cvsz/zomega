@@ -1,7 +1,7 @@
-# OMEGA Skill 068: repository-cleanup
+# zomega Skill 068: repository-cleanup
 
 ## Owner
-`omega-operator`
+`zomega-operator`
 
 ## Objective
 Execute `repository-cleanup` as a production engineering operation with traceable evidence.

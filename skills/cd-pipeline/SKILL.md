@@ -1,7 +1,7 @@
-# OMEGA Skill 011: cd-pipeline
+# zomega Skill 011: cd-pipeline
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `cd-pipeline` as a production engineering operation with traceable evidence.

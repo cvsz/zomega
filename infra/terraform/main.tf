@@ -10,22 +10,22 @@ terraform {
 
 provider "docker" {}
 
-variable "omega_image" {
+variable "zomega_image" {
   type = string
 }
 
-resource "docker_network" "omega" {
-  name = "omega"
+resource "docker_network" "zomega" {
+  name = "zomega"
 }
 
 resource "docker_volume" "postgres" {
-  name = "omega-postgres"
+  name = "zomega-postgres"
 }
 
 resource "docker_volume" "redis" {
-  name = "omega-redis"
+  name = "zomega-redis"
 }
 
 output "network_name" {
-  value = docker_network.omega.name
+  value = docker_network.zomega.name
 }

@@ -1,7 +1,7 @@
-# OMEGA Skill 052: load-testing
+# zomega Skill 052: load-testing
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `load-testing` as a production engineering operation with traceable evidence.

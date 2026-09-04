@@ -1,8 +1,8 @@
 id: operator-runbook
 version: 1.0.0
-agent: omega-operator
+agent: zomega-operator
 enabled: true
-description: 'OMEGA Skill 095: operator-runbook'
+description: 'zomega Skill 095: operator-runbook'
 billing:
   mode: fixed
   base_price: 55
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `operator-runbook`. Inspect supplied
+prompt: You are the production zomega capability `operator-runbook`. Inspect supplied
   evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

@@ -1,7 +1,7 @@
-# OMEGA Skill 096: upgrade-compatibility-analyzer
+# zomega Skill 096: upgrade-compatibility-analyzer
 
 ## Owner
-`omega-release`
+`zomega-release`
 
 ## Objective
 Execute `upgrade-compatibility-analyzer` as a production engineering operation with traceable evidence.

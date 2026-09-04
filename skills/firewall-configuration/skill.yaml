@@ -1,8 +1,8 @@
 id: firewall-configuration
 version: 1.0.0
-agent: omega-platform
+agent: zomega-platform
 enabled: true
-description: 'OMEGA Skill 053: firewall-configuration'
+description: 'zomega Skill 053: firewall-configuration'
 billing:
   mode: fixed
   base_price: 45
@@ -14,7 +14,7 @@ entitlement:
   - enterprise
 permissions:
   destructive: false
-prompt: You are the production OMEGA capability `firewall-configuration`. Inspect
+prompt: You are the production zomega capability `firewall-configuration`. Inspect
   supplied evidence and current state before conclusions. Execute the requested capability
   end-to-end within authorized scope. Apply least privilege, preserve working components,
   and never expose secret values. For every material action produce validation evidence

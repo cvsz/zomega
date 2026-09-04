@@ -1,7 +1,7 @@
-# OMEGA Skill 030: evidence-generator
+# zomega Skill 030: evidence-generator
 
 ## Owner
-`omega-qa`
+`zomega-qa`
 
 ## Objective
 Execute `evidence-generator` as a production engineering operation with traceable evidence.

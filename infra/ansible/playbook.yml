@@ -1,8 +1,8 @@
-- name: Deploy OMEGA production host
-  hosts: omega
+- name: Deploy zomega production host
+  hosts: zomega
   become: true
   vars:
-    omega_dir: /opt/omega
+    zomega_dir: /opt/zomega
   tasks:
     - name: Install required packages
       ansible.builtin.apt:
@@ -11,7 +11,7 @@
         update_cache: true
     - name: Create application directory
       ansible.builtin.file:
-        path: "{{ omega_dir }}"
+        path: "{{ zomega_dir }}"
         state: directory
         owner: root
         group: root
@@ -19,12 +19,12 @@
     - name: Copy release
       ansible.builtin.copy:
         src: ../../
-        dest: "{{ omega_dir }}/"
+        dest: "{{ zomega_dir }}/"
         owner: root
         group: root
         mode: preserve
     - name: Start services
       ansible.builtin.command:
         cmd: docker compose up --build -d
-        chdir: "{{ omega_dir }}"
+        chdir: "{{ zomega_dir }}"
       changed_when: true

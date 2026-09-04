@@ -1,7 +1,7 @@
-# OMEGA Skill 013: cloudflare-deployment
+# zomega Skill 013: cloudflare-deployment
 
 ## Owner
-`omega-platform`
+`zomega-platform`
 
 ## Objective
 Execute `cloudflare-deployment` as a production engineering operation with traceable evidence.

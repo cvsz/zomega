@@ -1,7 +1,7 @@
-# OMEGA Skill 049: kubernetes-secret-architecture
+# zomega Skill 049: kubernetes-secret-architecture
 
 ## Owner
-`omega-security`
+`zomega-security`
 
 ## Objective
 Execute `kubernetes-secret-architecture` as a production engineering operation with traceable evidence.
