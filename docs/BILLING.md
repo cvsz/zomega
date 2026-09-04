@@ -1,46 +1,59 @@
-# Billing Guarantees — OMEGA 2.1
+# Billing Guarantees — OMEGA 3.0
 
-## Invariants
+## Financial invariants
 
 - A billable run cannot dispatch until its wallet reservation commits.
 - Wallet mutations use PostgreSQL row locks.
 - `available_credits >= 0` and `reserved_credits >= 0` are database constraints.
-- Every reserve, charge, refund, and credit has a ledger record.
-- Ledger reference uniqueness prevents duplicate financial postings.
+- Every financial movement has a unique ledger reference.
 - Verified Stripe event insertion and wallet credit occur in one transaction.
 - Duplicate Stripe events cannot credit twice.
-- The sum of available + reserved credits must equal credit minus charge ledger totals.
+- Marketplace purchases are idempotent by buyer tenant + idempotency key.
+- Buyer marketplace debit, publisher earning, revenue-share accounting, and entitlement grant commit atomically.
 - Open reservation totals must equal `wallet.reserved_credits`.
+- Wallet reconciliation derives net value from Stripe credits, run charges, marketplace charges, and marketplace earnings.
 
 ## Checkout integrity
 
-Clients submit a package identifier, not a price or arbitrary credit amount. The server maps:
+Clients submit a package identifier rather than an arbitrary price or credit amount. OMEGA maps
+packages to operator-configured Stripe Price IDs and grants credits only after signed paid webhook
+verification.
 
-- `credits_1000`
-- `credits_5000`
-- `credits_20000`
+## Execution budgets and tenant limits
 
-to operator-configured Stripe Price IDs. Webhook fulfillment validates the signed package metadata
-against the server catalog before granting credits.
+Run reservation is bounded by Skill/Agent pricing and caller `max_spend_credits`.
 
-## Execution budgets
+OMEGA 3.0 additionally enforces tenant-month:
 
-Skill calls reserve their declared maximum. Agent calls reserve the lower of the workflow maximum
-and the caller's `max_spend_credits`.
+- run limits
+- credit/spend limits
+- Agent allowlists
+- Skill allowlists
 
-The worker checks the next skill's required reservation before execution. Insufficient remaining
-budget ends the run as `PARTIAL / BUDGET_EXHAUSTED`; it is not an execution failure.
+The credit cap includes settled execution charges, marketplace purchases, open reservations, and the
+candidate reservation.
+
+## Marketplace revenue share
+
+A marketplace purchase locks buyer and publisher wallet rows in deterministic tenant-ID order.
+
+```text
+buyer - gross purchase
+publisher + publisher share
+platform accounting = gross - publisher share
+```
+
+Publisher earnings become usable OMEGA credits immediately after the transaction commits.
 
 ## Reconciliation
-
-Use:
 
 ```bash
 omega reconcile-wallet --tenant-id <tenant-id>
 ```
 
-A failed reconciliation is an incident: freeze automated financial mutations for the affected
-tenant until ledger, reservations, and payment events are reviewed.
+A failed reconciliation is a financial incident. Freeze affected automated financial mutations,
+inspect wallet ledger/reservations/payment events/marketplace ledger, and correct state only through
+an audited procedure.
 
-Ambiguous provider states are deliberately not auto-refunded because an upstream billable request
-may already have completed. Resolve explicitly with `omega reconcile-run`.
+Ambiguous upstream AI provider states are not automatically refunded because billable work may have
+completed externally.
