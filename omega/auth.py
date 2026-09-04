@@ -49,6 +49,8 @@ def authenticate(raw_key: str, required_scope: str | None = None) -> dict:
             "name": tenant.name,
             "plan": tenant.plan,
             "api_key_id": key.id,
+            "key_type": key.key_type,
+            "role": key.role,
             "scopes": list(key.scopes),
         }
 
