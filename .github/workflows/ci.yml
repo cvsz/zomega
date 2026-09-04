@@ -143,6 +143,51 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:8000/health/live | grep '"status":"ok"'
           curl --fail --silent http://127.0.0.1:8000/v1/catalog | grep '"skills"'
+      - name: Verify 2.2 to 3.0 primary-key scope migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          alembic downgrade 0005
+          python - <<'PY'
+          import json, uuid
+          from sqlalchemy import create_engine, text
+          from omega.config import settings
+
+          tenant_id = str(uuid.uuid4())
+          engine = create_engine(settings.database_url)
+          with engine.begin() as conn:
+              conn.execute(text(
+                  "INSERT INTO tenants (id,name,plan,status) VALUES (:id,'legacy','pro','active')"
+              ), {"id": tenant_id})
+              conn.execute(text(
+                  "INSERT INTO wallets (tenant_id,available_credits,reserved_credits,version) "
+                  "VALUES (:id,0,0,0)"
+              ), {"id": tenant_id})
+              conn.execute(text(
+                  "INSERT INTO api_keys "
+                  "(id,tenant_id,name,key_prefix,key_digest,scopes,active) "
+                  "VALUES (:kid,:tid,'primary',:prefix,:digest,CAST(:scopes AS json),true)"
+              ), {
+                  "kid": str(uuid.uuid4()),
+                  "tid": tenant_id,
+                  "prefix": uuid.uuid4().hex[:24],
+                  "digest": "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+                  "scopes": json.dumps(["runs:read"]),
+              })
+          PY
+          alembic upgrade head
+          python - <<'PY'
+          from sqlalchemy import create_engine, text
+          from omega.config import settings
+          engine = create_engine(settings.database_url)
+          with engine.connect() as conn:
+              scopes = conn.execute(text(
+                  "SELECT scopes FROM api_keys WHERE name='primary' ORDER BY created_at DESC LIMIT 1"
+              )).scalar_one()
+          required = {"dashboard:read","subscription:read","registry:read","registry:write","marketplace:read","marketplace:write"}
+          assert required.issubset(set(scopes)), scopes
+          print("upgrade_scope_migration=PASS")
+          PY
       - name: Migration round-trip
         run: |
           alembic downgrade base
