@@ -28,6 +28,8 @@ class ApiKey(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    key_type: Mapped[str] = mapped_column(String(30), nullable=False, default="api_key")
+    role: Mapped[str | None] = mapped_column(String(40))
     key_prefix: Mapped[str | None] = mapped_column(String(24), nullable=True, unique=True, index=True)
     key_digest: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     scopes: Mapped[list] = mapped_column(JSON, nullable=False)
