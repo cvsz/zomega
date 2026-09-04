@@ -29,7 +29,7 @@ from .providers.stripe_provider import (
 from .rate_limit import enforce
 from .run_service import create_skill_run, create_agent_run
 from .security import utcnow
-from .key_service import list_api_keys, create_api_key, revoke_api_key
+from .key_service import list_api_keys, create_api_key, create_service_account, revoke_api_key, ROLE_SCOPES
 from .audit import list_audit_events, export_audit_ndjson, record_audit
 from .registry import create_or_update_publisher, publish_skill, list_granted_skills
 from .marketplace import create_listing, list_listings, purchase_listing, publisher_earnings
@@ -47,6 +47,11 @@ class CheckoutBody(BaseModel):
 class ApiKeyCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     scopes: list[str]
+    expires_at: datetime | None = None
+
+class ServiceAccountCreateBody(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    role: str = Field(min_length=1, max_length=40)
     expires_at: datetime | None = None
 
 class TenantControlBody(BaseModel):
@@ -270,6 +275,16 @@ def api_keys_create(body: ApiKeyCreateBody, tenant=Depends(require_keys_write)):
         name=body.name,
         scopes=body.scopes,
         expires_at=body.expires_at,
+    )
+
+@app.get("/v1/service-account-roles")
+def service_account_roles(tenant=Depends(require_keys_read)):
+    return {role: sorted(scopes) for role, scopes in ROLE_SCOPES.items()}
+
+@app.post("/v1/service-accounts", status_code=201)
+def service_account_create(body: ServiceAccountCreateBody, tenant=Depends(require_keys_write)):
+    return create_service_account(
+        tenant["id"], tenant["api_key_id"], body.name, body.role, body.expires_at
     )
 
 @app.delete("/v1/api-keys/{key_id}")
