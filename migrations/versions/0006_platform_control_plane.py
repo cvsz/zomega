@@ -106,6 +106,18 @@ def upgrade():
     )
     op.create_index("ix_marketplace_listings_publisher_tenant_id", "marketplace_listings", ["publisher_tenant_id"])
     op.create_table(
+        "skill_licenses",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("tenant_id", sa.String(36), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("listing_id", sa.String(36), sa.ForeignKey("marketplace_listings.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("purchase_price_credits", sa.BigInteger(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.UniqueConstraint("tenant_id", "listing_id", name="uq_skill_license_tenant_listing"),
+        sa.CheckConstraint("purchase_price_credits > 0", name="ck_skill_license_price_positive"),
+    )
+    op.create_index("ix_skill_licenses_tenant_id", "skill_licenses", ["tenant_id"])
+    op.create_index("ix_skill_licenses_listing_id", "skill_licenses", ["listing_id"])
+    op.create_table(
         "marketplace_ledger",
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("tenant_id", sa.String(36), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
@@ -134,6 +146,7 @@ def upgrade():
 def downgrade():
     op.drop_column("runs", "usage_accounted")
     op.drop_table("marketplace_ledger")
+    op.drop_table("skill_licenses")
     op.drop_table("marketplace_listings")
     op.drop_table("private_skills")
     op.drop_table("service_accounts")
