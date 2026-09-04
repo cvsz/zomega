@@ -3,8 +3,8 @@ from sqlalchemy import select
 
 from .audit import record_audit
 from .db import session_scope
-from .key_service import create_api_key_record, revoke_api_key
-from .models import Organization, OrganizationMember, ServiceAccount
+from .key_service import create_api_key_record
+from .models import ApiKey, Organization, OrganizationMember, ServiceAccount
 
 ROLES = {"owner", "admin", "developer", "viewer", "billing"}
 ROLE_SCOPES = {
@@ -117,8 +117,73 @@ def disable_service_account(tenant_id: str, actor_key_id: str, service_account_i
         ).scalar_one_or_none()
         if not sa:
             raise HTTPException(404, "Service account not found")
-        api_key_id = sa.api_key_id
+        key = db.execute(
+            select(ApiKey)
+            .where(ApiKey.id == sa.api_key_id, ApiKey.tenant_id == tenant_id)
+            .with_for_update()
+        ).scalar_one()
         sa.status = "disabled"
-    revoke_api_key(tenant_id, actor_key_id, api_key_id)
+        key.active = False
     record_audit(tenant_id, "api_key", actor_key_id, "service_account.disabled", "service_account", service_account_id, {})
     return {"id": service_account_id, "status": "disabled"}
+
+
+def update_member_role(
+    tenant_id: str,
+    actor_key_id: str,
+    org_id: str,
+    member_id: str,
+    role: str,
+) -> dict:
+    if role not in ROLES:
+        raise HTTPException(400, "Unknown role")
+    with session_scope() as db:
+        member = db.execute(
+            select(OrganizationMember)
+            .join(Organization, Organization.id == OrganizationMember.organization_id)
+            .where(
+                OrganizationMember.id == member_id,
+                OrganizationMember.organization_id == org_id,
+                Organization.tenant_id == tenant_id,
+            )
+            .with_for_update()
+        ).scalar_one_or_none()
+        if not member:
+            raise HTTPException(404, "Organization member not found")
+        member.role = role
+    record_audit(tenant_id, "api_key", actor_key_id, "organization.member_role_changed", "organization_member", member_id, {"organization_id": org_id, "role": role})
+    return {"id": member_id, "role": role}
+
+def remove_member(tenant_id: str, actor_key_id: str, org_id: str, member_id: str) -> dict:
+    with session_scope() as db:
+        member = db.execute(
+            select(OrganizationMember)
+            .join(Organization, Organization.id == OrganizationMember.organization_id)
+            .where(
+                OrganizationMember.id == member_id,
+                OrganizationMember.organization_id == org_id,
+                Organization.tenant_id == tenant_id,
+            )
+            .with_for_update()
+        ).scalar_one_or_none()
+        if not member:
+            raise HTTPException(404, "Organization member not found")
+        db.delete(member)
+    record_audit(tenant_id, "api_key", actor_key_id, "organization.member_removed", "organization_member", member_id, {"organization_id": org_id})
+    return {"id": member_id, "deleted": True}
+
+def list_service_accounts(tenant_id: str) -> list[dict]:
+    with session_scope() as db:
+        rows = db.execute(
+            select(ServiceAccount)
+            .where(ServiceAccount.tenant_id == tenant_id)
+            .order_by(ServiceAccount.created_at.desc())
+        ).scalars().all()
+        return [{
+            "id": row.id,
+            "organization_id": row.organization_id,
+            "api_key_id": row.api_key_id,
+            "name": row.name,
+            "status": row.status,
+            "created_at": row.created_at,
+        } for row in rows]
