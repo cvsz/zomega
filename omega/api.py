@@ -10,6 +10,10 @@ from .auth import (
     require_billing_read, require_billing_write, require_skills_run,
     require_agents_run, require_runs_read, require_runs_cancel,
     require_keys_read, require_keys_write, require_audit_read,
+    require_orgs_read, require_orgs_write,
+    require_private_skills_read, require_private_skills_write,
+    require_marketplace_read, require_marketplace_write,
+    require_platform_read, require_admin,
 )
 from .billing import get_wallet, process_verified_payment, refund_run, reconcile_wallet
 from .catalog import public_catalog, public_skill, public_agent, load_agents, load_skills
@@ -23,8 +27,18 @@ from .run_service import create_skill_run, create_agent_run
 from .security import utcnow
 from .key_service import list_api_keys, create_api_key, revoke_api_key
 from .audit import list_audit_events
+from .platform import get_control_plane, admin_set_plan, PLAN_CATALOG
+from .org_service import (
+    create_organization, list_organizations, add_member, list_members,
+    create_service_account, disable_service_account,
+)
+from .private_skills import register_private_skill, list_private_skills, set_private_skill_status
+from .marketplace import (
+    create_listing, set_listing_status, list_marketplace,
+    purchase_listing, list_licenses, marketplace_balance,
+)
 
-app = FastAPI(title="OMEGA Production API", version="2.2.0")
+app = FastAPI(title="OMEGA Production API", version="3.0.0")
 RUNS = Counter("omega_runs_created_total", "OMEGA runs created", ["kind"])
 
 class RunBody(BaseModel):
@@ -38,6 +52,38 @@ class ApiKeyCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     scopes: list[str]
     expires_at: datetime | None = None
+
+class AdminPlanBody(BaseModel):
+    plan: str
+    subscription_status: str = "active"
+    monthly_credit_cap: int | None = Field(default=None, ge=1)
+    max_api_keys: int | None = Field(default=None, ge=1)
+    max_concurrent_runs: int | None = Field(default=None, ge=1)
+
+class OrganizationCreateBody(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+
+class OrganizationMemberBody(BaseModel):
+    subject: str = Field(min_length=1, max_length=200)
+    role: str
+
+class ServiceAccountCreateBody(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    role: str
+    organization_id: str | None = None
+
+class PrivateSkillCreateBody(BaseModel):
+    slug: str
+    version: str
+    manifest: dict
+
+class StatusBody(BaseModel):
+    status: str
+
+class MarketplaceListingBody(BaseModel):
+    private_skill_id: str
+    price_credits: int = Field(ge=1)
+    revenue_share_bps: int = Field(default=8000, ge=0, le=10000)
 
 @app.get("/health/live")
 def live():
@@ -240,3 +286,136 @@ def api_keys_revoke(key_id: str, tenant=Depends(require_keys_write)):
 @app.get("/v1/audit")
 def audit_events(limit: int = 100, tenant=Depends(require_audit_read)):
     return list_audit_events(tenant["id"], limit=limit)
+
+
+@app.get("/v1/platform")
+def platform_status(tenant=Depends(require_platform_read)):
+    return get_control_plane(tenant["id"])
+
+@app.get("/v1/plans")
+def plans():
+    return PLAN_CATALOG
+
+@app.put("/v1/admin/tenants/{tenant_id}/plan")
+def admin_plan_update(tenant_id: str, body: AdminPlanBody, _admin=Depends(require_admin)):
+    return admin_set_plan(
+        tenant_id=tenant_id,
+        plan=body.plan,
+        subscription_status=body.subscription_status,
+        monthly_credit_cap=body.monthly_credit_cap,
+        max_api_keys=body.max_api_keys,
+        max_concurrent_runs=body.max_concurrent_runs,
+    )
+
+@app.get("/v1/organizations")
+def organizations_list(tenant=Depends(require_orgs_read)):
+    return list_organizations(tenant["id"])
+
+@app.post("/v1/organizations", status_code=201)
+def organizations_create(body: OrganizationCreateBody, tenant=Depends(require_orgs_write)):
+    return create_organization(tenant["id"], tenant["api_key_id"], body.name)
+
+@app.get("/v1/organizations/{organization_id}/members")
+def organization_members_list(organization_id: str, tenant=Depends(require_orgs_read)):
+    return list_members(tenant["id"], organization_id)
+
+@app.post("/v1/organizations/{organization_id}/members", status_code=201)
+def organization_members_create(
+    organization_id: str,
+    body: OrganizationMemberBody,
+    tenant=Depends(require_orgs_write),
+):
+    return add_member(
+        tenant["id"],
+        tenant["api_key_id"],
+        organization_id,
+        body.subject,
+        body.role,
+    )
+
+@app.post("/v1/service-accounts", status_code=201)
+def service_accounts_create(body: ServiceAccountCreateBody, tenant=Depends(require_orgs_write)):
+    return create_service_account(
+        tenant_id=tenant["id"],
+        actor_key_id=tenant["api_key_id"],
+        org_id=body.organization_id,
+        name=body.name,
+        role=body.role,
+    )
+
+@app.delete("/v1/service-accounts/{service_account_id}")
+def service_accounts_disable(service_account_id: str, tenant=Depends(require_orgs_write)):
+    return disable_service_account(
+        tenant["id"],
+        tenant["api_key_id"],
+        service_account_id,
+    )
+
+@app.get("/v1/private-skills")
+def private_skills_list(tenant=Depends(require_private_skills_read)):
+    return list_private_skills(tenant["id"])
+
+@app.post("/v1/private-skills", status_code=201)
+def private_skills_create(body: PrivateSkillCreateBody, tenant=Depends(require_private_skills_write)):
+    return register_private_skill(
+        tenant_id=tenant["id"],
+        actor_key_id=tenant["api_key_id"],
+        slug=body.slug,
+        version=body.version,
+        manifest=body.manifest,
+    )
+
+@app.put("/v1/private-skills/{skill_id}/status")
+def private_skills_status(
+    skill_id: str,
+    body: StatusBody,
+    tenant=Depends(require_private_skills_write),
+):
+    return set_private_skill_status(
+        tenant["id"],
+        tenant["api_key_id"],
+        skill_id,
+        body.status,
+    )
+
+@app.get("/v1/marketplace")
+def marketplace_public():
+    return list_marketplace()
+
+@app.post("/v1/marketplace/listings", status_code=201)
+def marketplace_listing_create(
+    body: MarketplaceListingBody,
+    tenant=Depends(require_marketplace_write),
+):
+    return create_listing(
+        tenant["id"],
+        tenant["api_key_id"],
+        body.private_skill_id,
+        body.price_credits,
+        body.revenue_share_bps,
+    )
+
+@app.put("/v1/marketplace/listings/{listing_id}/status")
+def marketplace_listing_status(
+    listing_id: str,
+    body: StatusBody,
+    tenant=Depends(require_marketplace_write),
+):
+    return set_listing_status(
+        tenant["id"],
+        tenant["api_key_id"],
+        listing_id,
+        body.status,
+    )
+
+@app.post("/v1/marketplace/listings/{listing_id}/purchase", status_code=201)
+def marketplace_purchase(listing_id: str, tenant=Depends(require_marketplace_write)):
+    return purchase_listing(tenant["id"], tenant["api_key_id"], listing_id)
+
+@app.get("/v1/marketplace/licenses")
+def marketplace_licenses(tenant=Depends(require_marketplace_read)):
+    return list_licenses(tenant["id"])
+
+@app.get("/v1/marketplace/balance")
+def marketplace_publisher_balance(tenant=Depends(require_marketplace_read)):
+    return marketplace_balance(tenant["id"])
