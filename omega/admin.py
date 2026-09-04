@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from .db import session_scope
-from .models import Tenant, Wallet, ApiKey
+from .models import Tenant, Wallet, ApiKey, TenantQuota, SubscriptionState
 from .security import hash_api_key_secret, parse_api_key
 from .config import settings
 
@@ -15,6 +15,13 @@ DEFAULT_SCOPES = [
     "keys:read",
     "keys:write",
     "audit:read",
+    "orgs:read",
+    "orgs:write",
+    "private_skills:read",
+    "private_skills:write",
+    "marketplace:read",
+    "marketplace:write",
+    "platform:read",
 ]
 
 def _validated_parts(raw_api_key: str) -> tuple[str, str]:
@@ -27,6 +34,15 @@ def create_tenant(name: str, raw_api_key: str, plan: str | None = None) -> str:
         db.add(tenant)
         db.flush()
         db.add(Wallet(tenant_id=tenant.id, available_credits=0, reserved_credits=0))
+        from .platform import PLAN_CATALOG
+        defaults = PLAN_CATALOG.get(tenant.plan, PLAN_CATALOG["pro"])
+        db.add(TenantQuota(tenant_id=tenant.id, **defaults))
+        db.add(SubscriptionState(
+            tenant_id=tenant.id,
+            provider="stripe",
+            status="active",
+            plan=tenant.plan,
+        ))
         db.add(ApiKey(
             tenant_id=tenant.id,
             name="primary",
