@@ -13,7 +13,7 @@ class CommercialIntegrationTest(unittest.TestCase):
     def _tenant(self, name: str, credits: int) -> tuple[str, str]:
         from omega.admin import DEFAULT_SCOPES
         from omega.db import session_scope
-        from omega.models import Tenant, Wallet, ApiKey
+        from omega.models import Tenant, Wallet, ApiKey, WalletLedger
         from omega.security import generate_api_key, parse_api_key, hash_api_key_secret
 
         tenant_id = str(uuid.uuid4())
@@ -28,6 +28,15 @@ class CommercialIntegrationTest(unittest.TestCase):
                 reserved_credits=0,
                 version=0,
             ))
+            if credits:
+                db.add(WalletLedger(
+                    tenant_id=tenant_id,
+                    kind="credit",
+                    amount=credits,
+                    reference_type="test_seed",
+                    reference_id=str(uuid.uuid4()),
+                    metadata_json={},
+                ))
             key = ApiKey(
                 tenant_id=tenant_id,
                 name="primary",
