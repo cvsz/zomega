@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
-from sqlalchemy import select
+from sqlalchemy import func, select
 from fastapi import HTTPException
 
 from .db import session_scope
-from .models import ApiKey
+from .models import ApiKey, Tenant, TenantQuota
 from .security import generate_api_key, hash_api_key_secret, parse_api_key
 from .audit import record_audit
 
@@ -17,6 +17,13 @@ ALLOWED_SCOPES = {
     "keys:read",
     "keys:write",
     "audit:read",
+    "orgs:read",
+    "orgs:write",
+    "private_skills:read",
+    "private_skills:write",
+    "marketplace:read",
+    "marketplace:write",
+    "platform:read",
 }
 
 def list_api_keys(tenant_id: str) -> list[dict]:
@@ -55,6 +62,29 @@ def create_api_key(
     raw = generate_api_key()
     prefix, secret = parse_api_key(raw)
     with session_scope() as db:
+        tenant = db.get(Tenant, tenant_id)
+        if not tenant:
+            raise HTTPException(404, "Tenant not found")
+        quota = db.execute(
+            select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
+        ).scalar_one_or_none()
+        if quota is None:
+            from .platform import ensure_tenant_controls
+            quota, _ = ensure_tenant_controls(db, tenant_id, tenant.plan)
+            quota = db.execute(
+                select(TenantQuota).where(TenantQuota.tenant_id == tenant_id).with_for_update()
+            ).scalar_one()
+        active_count = db.execute(
+            select(func.count(ApiKey.id)).where(
+                ApiKey.tenant_id == tenant_id,
+                ApiKey.active.is_(True),
+            )
+        ).scalar_one()
+        if int(active_count) >= quota.max_api_keys:
+            raise HTTPException(
+                429,
+                detail={"code": "API_KEY_LIMIT", "limit": quota.max_api_keys, "active": int(active_count)},
+            )
         key = ApiKey(
             tenant_id=tenant_id,
             name=name,
