@@ -290,3 +290,18 @@ class MarketplaceLedger(Base):
         UniqueConstraint("tenant_id", "kind", "reference_type", "reference_id", name="uq_marketplace_ledger_reference"),
         CheckConstraint("amount_credits <> 0", name="ck_marketplace_ledger_nonzero"),
     )
+
+
+class ServiceAccount(Base):
+    __tablename__ = "service_accounts"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
+    organization_id: Mapped[str | None] = mapped_column(ForeignKey("organizations.id", ondelete="SET NULL"), index=True)
+    api_key_id: Mapped[str] = mapped_column(ForeignKey("api_keys.id", ondelete="CASCADE"), unique=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_service_account_tenant_name"),
+        CheckConstraint("status IN ('active','disabled')", name="ck_service_account_status"),
+    )
