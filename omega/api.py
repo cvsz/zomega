@@ -1,3 +1,4 @@
+from datetime import datetime
 import hashlib
 from fastapi import FastAPI, Depends, Header, HTTPException, Request
 from fastapi.responses import PlainTextResponse
@@ -8,6 +9,7 @@ from sqlalchemy import select
 from .auth import (
     require_billing_read, require_billing_write, require_skills_run,
     require_agents_run, require_runs_read, require_runs_cancel,
+    require_keys_read, require_keys_write, require_audit_read,
 )
 from .billing import get_wallet, process_verified_payment, refund_run, reconcile_wallet
 from .catalog import public_catalog, public_skill, public_agent, load_agents, load_skills
@@ -19,8 +21,10 @@ from .providers.stripe_provider import (
 from .rate_limit import enforce
 from .run_service import create_skill_run, create_agent_run
 from .security import utcnow
+from .key_service import list_api_keys, create_api_key, revoke_api_key
+from .audit import list_audit_events
 
-app = FastAPI(title="OMEGA Production API", version="2.1.0")
+app = FastAPI(title="OMEGA Production API", version="2.2.0")
 RUNS = Counter("omega_runs_created_total", "OMEGA runs created", ["kind"])
 
 class RunBody(BaseModel):
@@ -29,6 +33,11 @@ class RunBody(BaseModel):
 
 class CheckoutBody(BaseModel):
     package_id: str
+
+class ApiKeyCreateBody(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    scopes: list[str]
+    expires_at: datetime | None = None
 
 @app.get("/health/live")
 def live():
@@ -204,3 +213,30 @@ def cancel_run(run_id: str, tenant=Depends(require_runs_cancel)):
         refund_run(run_id, "cancelled_before_execution")
         return {"run_id": run_id, "status": "CANCELLED", "cancel_requested": True}
     return {"run_id": run_id, "status": "CANCEL_REQUESTED", "cancel_requested": True}
+
+
+@app.get("/v1/api-keys")
+def api_keys_list(tenant=Depends(require_keys_read)):
+    return list_api_keys(tenant["id"])
+
+@app.post("/v1/api-keys", status_code=201)
+def api_keys_create(body: ApiKeyCreateBody, tenant=Depends(require_keys_write)):
+    return create_api_key(
+        tenant_id=tenant["id"],
+        actor_key_id=tenant["api_key_id"],
+        name=body.name,
+        scopes=body.scopes,
+        expires_at=body.expires_at,
+    )
+
+@app.delete("/v1/api-keys/{key_id}")
+def api_keys_revoke(key_id: str, tenant=Depends(require_keys_write)):
+    return revoke_api_key(
+        tenant_id=tenant["id"],
+        actor_key_id=tenant["api_key_id"],
+        key_id=key_id,
+    )
+
+@app.get("/v1/audit")
+def audit_events(limit: int = 100, tenant=Depends(require_audit_read)):
+    return list_audit_events(tenant["id"], limit=limit)
