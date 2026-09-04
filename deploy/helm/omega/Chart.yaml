@@ -1,4 +1,4 @@
 apiVersion: v2
 name: omega
-version: 2.1.0
-appVersion: "2.1.0"
+version: 2.2.0
+appVersion: "2.2.0"
