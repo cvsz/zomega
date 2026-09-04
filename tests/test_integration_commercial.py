@@ -174,6 +174,9 @@ class CommercialIntegrationTest(unittest.TestCase):
         earnings = publisher_earnings(publisher_tenant)
         self.assertEqual(earnings["publisher_credits"], 800)
         self.assertEqual(earnings["sales"], 1)
+        publisher_reconciliation = reconcile_wallet(publisher_tenant)
+        self.assertTrue(publisher_reconciliation["ok"])
+        self.assertEqual(publisher_reconciliation["available_credits"], 800)
 
         with session_scope() as db:
             self.assertEqual(
