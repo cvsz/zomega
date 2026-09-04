@@ -95,7 +95,8 @@ class CommercialIntegrationTest(unittest.TestCase):
         from omega.db import session_scope
         from omega.models import PrivateSkillGrant, MarketplaceLedger
         from omega.registry import (
-            canonical_manifest, create_or_update_publisher, publish_skill, list_granted_skills
+            canonical_manifest, create_or_update_publisher, publish_skill, list_granted_skills,
+            verify_skill_version
         )
         from omega.marketplace import (
             create_listing, purchase_listing, publisher_earnings
@@ -134,6 +135,9 @@ class CommercialIntegrationTest(unittest.TestCase):
             manifest=manifest,
             signature_b64=signature,
         )
+
+        verification = verify_skill_version(skill["id"])
+        self.assertTrue(verification["valid"])
 
         listing = create_listing(
             publisher_tenant,
