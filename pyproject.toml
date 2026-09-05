@@ -43,4 +43,7 @@ no_implicit_optional = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+filterwarnings = [
+  "ignore:Call to '__init__' function with deprecated usage of input argument/s 'retry_on_timeout':DeprecationWarning:arq.connections",
+]
 
