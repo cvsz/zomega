@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>zomega — Multi-Tenant Autonomous Agents & Billable Skills Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 41, 59, 0.85);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.25);
+      --secondary: #818cf8;
+      --accent: #34d399;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(129, 140, 248, 0.08) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 13, 22, 0.8);
+    }
+
+    .nav-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .badge-v3 {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      color: var(--accent);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.875rem;
+      padding: 0.55rem 1.15rem;
+      border-radius: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3.5rem;
+      max-width: 820px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f8fafc 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .stat-card .label {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .search-box {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(56, 189, 248, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .price-tag {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pricing-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--primary);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+    }
+
+    .pricing-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-credits {
+      font-size: 2.25rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--primary);
+      margin: 1rem 0;
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        <span>zomega</span>
+        <span class="badge-v3">v3.0.0</span>
+      </div>
+
+      <div class="status-pill" id="health-status">
+        <span class="status-dot"></span>
+        <span id="health-text">CONNECTING...</span>
+      </div>
+
+      <div class="nav-links">
+        <a href="/docs" target="_blank">API Docs</a>
+        <a href="/redoc" target="_blank">ReDoc</a>
+        <a href="/metrics" target="_blank">Metrics</a>
+        <a href="https://github.com/cvsz/zomega" target="_blank" class="btn">GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Multi-Tenant Autonomous Agents & Billable Skills Platform</h1>
+      <p>A paid-before-use enterprise runtime with transactional wallet reservations, 12 specialized autonomous agents, and 100 billable production skills.</p>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="label">Specialized Agents</div>
+        <div class="value" id="count-agents">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Billable Skills</div>
+        <div class="value" id="count-skills">100</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Database State</div>
+        <div class="value" id="val-db" style="color: var(--accent);">PostgreSQL</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Queue & Dispatch</div>
+        <div class="value" id="val-redis" style="color: var(--primary);">Redis 8</div>
+      </div>
+    </section>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('skills')">Skills Catalog (<span id="tab-skills-count">100</span>)</button>
+      <button class="tab-btn" onclick="switchTab('agents')">Agents Fleet (<span id="tab-agents-count">12</span>)</button>
+      <button class="tab-btn" onclick="switchTab('pricing')">Credit Packages</button>
+      <button class="tab-btn" onclick="switchTab('architecture')">Architecture & Invariants</button>
+    </div>
+
+    <div class="search-box" id="search-container">
+      <input type="text" id="filter-input" placeholder="Filter skills or agents by name, role, or description..." oninput="filterCatalog()">
+    </div>
+
+    <div id="tab-skills" class="tab-content">
+      <div class="grid-container" id="skills-grid">
+        <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Loading skills catalog...</div>
+      </div>
+    </div>
+
+    <div id="tab-agents" class="tab-content" style="display: none;">
+      <div class="grid-container" id="agents-grid">
+        <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Loading agents...</div>
+      </div>
+    </div>
+
+    <div id="tab-pricing" class="tab-content" style="display: none;">
+      <div class="pricing-grid" id="pricing-grid">
+        <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Loading credit packages...</div>
+      </div>
+    </div>
+
+    <div id="tab-architecture" class="tab-content" style="display: none;">
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 2rem; font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.8; color: #cbd5e1;">
+        <h3 style="color: #fff; margin-bottom: 1rem; font-family: var(--font-sans);">Core Runtime Invariant Pipeline</h3>
+        <p style="color: var(--primary);">API key / Service account</p>
+        <p>↳ tenant + role/scope + entitlement check</p>
+        <p>↳ rate limit + tenant quota policy enforcement</p>
+        <p>↳ transactional run + wallet reservation + ledger + outbox</p>
+        <p>↳ Redis/ARQ queue dispatch</p>
+        <p>↳ retry-safe worker checkpoint</p>
+        <p>↳ OpenAI Responses API / model completion</p>
+        <p>↳ token metering & audit evidence</p>
+        <p>↳ settle reservation / refund remainder</p>
+        <p style="color: var(--accent);">↳ immutable audit log + financial reconciliation</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>zomega Platform Production 3.0 &copy; 2026. Powered by FastAPI, PostgreSQL 17, Redis 8, and Cloudflare Tunnel.</p>
+  </footer>
+
+  <script>
+    let skillsData = [];
+    let agentsData = [];
+    let packagesData = [];
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/health/ready');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('health-text').innerText = 'OPERATIONAL (DB & REDIS OK)';
+        } else {
+          document.getElementById('health-text').innerText = 'DEGRADED';
+        }
+      } catch (err) {
+        document.getElementById('health-text').innerText = 'OFFLINE';
+      }
+    }
+
+    async function loadData() {
+      try {
+        const [resSkills, resAgents, resPackages] = await Promise.all([
+          fetch('/v1/catalog').then(r => r.json()),
+          fetch('/v1/agents').then(r => r.json()),
+          fetch('/v1/billing/packages').then(r => r.json())
+        ]);
+
+        skillsData = resSkills.skills || [];
+        agentsData = resAgents || [];
+        packagesData = resPackages || [];
+
+        document.getElementById('count-skills').innerText = skillsData.length;
+        document.getElementById('tab-skills-count').innerText = skillsData.length;
+        document.getElementById('count-agents').innerText = agentsData.length;
+        document.getElementById('tab-agents-count').innerText = agentsData.length;
+
+        renderSkills(skillsData);
+        renderAgents(agentsData);
+        renderPackages(packagesData);
+      } catch (err) {
+        console.error("Failed to load catalog:", err);
+      }
+    }
+
+    function renderSkills(skills) {
+      const grid = document.getElementById('skills-grid');
+      if (skills.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No matching skills found.</div>';
+        return;
+      }
+      grid.innerHTML = skills.map(s => `
+        <div class="card">
+          <div>
+            <div class="card-title">
+              <span>${escapeHtml(s.id)}</span>
+              <span class="card-badge">${escapeHtml(s.agent || 'zomega')}</span>
+            </div>
+            <div class="card-desc">${escapeHtml(s.description || 'Billable skill capability')}</div>
+          </div>
+          <div class="card-footer">
+            <span class="price-tag">${s.billing ? s.billing.reservation + ' cr' : 'Custom'}</span>
+            <span>v${escapeHtml(s.version || '1.0.0')}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAgents(agents) {
+      const grid = document.getElementById('agents-grid');
+      grid.innerHTML = agents.map(a => `
+        <div class="card">
+          <div>
+            <div class="card-title">
+              <span>${escapeHtml(a.id)}</span>
+              <span class="card-badge">v${escapeHtml(a.version || '1.0.0')}</span>
+            </div>
+            <div class="card-desc">${escapeHtml(a.role || 'Autonomous Agent')}</div>
+          </div>
+          <div class="card-footer">
+            <span>Specialized Execution</span>
+            <span style="color: var(--primary);">Active</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderPackages(packages) {
+      const grid = document.getElementById('pricing-grid');
+      grid.innerHTML = packages.map((p, idx) => `
+        <div class="pricing-card ${idx === 1 ? 'featured' : ''}">
+          <div class="pricing-title">${escapeHtml(p.id.replace('_', ' ').toUpperCase())}</div>
+          <div class="pricing-credits">${p.credits.toLocaleString()}</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Prepaid run credits for all 100 skills & 12 agents.</p>
+          <a href="/docs#/Billing/create_checkout_v1_checkout_post" class="btn" style="width: 100%; justify-content: center;">Purchase via API</a>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + tabId).style.display = 'block';
+
+      const searchContainer = document.getElementById('search-container');
+      if (tabId === 'skills' || tabId === 'agents') {
+        searchContainer.style.display = 'block';
+      } else {
+        searchContainer.style.display = 'none';
+      }
+    }
+
+    function filterCatalog() {
+      const q = document.getElementById('filter-input').value.toLowerCase();
+      const filteredSkills = skillsData.filter(s => 
+        s.id.toLowerCase().includes(q) || 
+        (s.description && s.description.toLowerCase().includes(q)) ||
+        (s.agent && s.agent.toLowerCase().includes(q))
+      );
+      renderSkills(filteredSkills);
+
+      const filteredAgents = agentsData.filter(a => 
+        a.id.toLowerCase().includes(q) || 
+        (a.role && a.role.toLowerCase().includes(q))
+      );
+      renderAgents(filteredAgents);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    checkHealth();
+    loadData();
+    setInterval(checkHealth, 15000);
+  </script>
+</body>
+</html>

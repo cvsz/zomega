@@ -1,8 +1,9 @@
 from datetime import datetime
 import hashlib
 
+from pathlib import Path
 from fastapi import FastAPI, Depends, Header, HTTPException, Request
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 from sqlalchemy import select
@@ -83,6 +84,15 @@ class MarketplaceListingBody(BaseModel):
     skill_version_id: str = Field(min_length=36, max_length=36)
     price_credits: int = Field(ge=1)
     publisher_share_bps: int = Field(default=8000, ge=0, le=10000)
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+@app.get("/")
+def index():
+    index_file = STATIC_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
+    return {"name": "zomega", "version": "3.0.0", "status": "running"}
 
 @app.get("/health/live")
 def live():
