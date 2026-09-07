@@ -1,4 +1,4 @@
-.PHONY: help install venv init migrate db-check serve worker dev test test-integration test-all lint lint-fix format typecheck check validate verify compose-up compose-down compose-logs compose-ps backup restore restore-verify gpg-status clean
+.PHONY: help install venv init migrate db-check serve worker dev test test-integration test-all lint lint-fix format typecheck check validate verify compose-up compose-down compose-logs compose-ps backup restore restore-verify operator-apply operator-verify gpg-status clean
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -45,6 +45,8 @@ help:
 	@echo "  make backup            - Execute database backup (./backup.sh)"
 	@echo "  make restore           - Restore database (usage: make restore src=backups/file.dump)"
 	@echo "  make restore-verify    - Run automated restore verification drill (./restore-verify.sh)"
+	@echo "  make operator-apply    - Apply production GitHub governance/environment controls"
+	@echo "  make operator-verify   - Verify production operator completion gates"
 	@echo ""
 	@echo "Git & Clean:"
 	@echo "  make gpg-status        - Show GPG agent and commit signing status"
@@ -127,6 +129,12 @@ restore:
 
 restore-verify:
 	./restore-verify.sh
+
+operator-apply:
+	./scripts/production-operator-complete.sh
+
+operator-verify:
+	./scripts/production-operator-verify.sh
 
 gpg-status:
 	git gpg-agents
