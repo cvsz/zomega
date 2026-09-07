@@ -5,6 +5,7 @@ permissions:
   read: ["repository", "configuration", "evidence"]
   write: ["workspace", "reports"]
   destructive: false
+skills: ["*"]
 default_workflow:
   - mission-interpreter
   - repository-intelligence
