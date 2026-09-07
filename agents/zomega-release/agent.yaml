@@ -5,6 +5,7 @@ permissions:
   read: ["repository", "configuration", "evidence"]
   write: ["workspace", "reports"]
   destructive: false
+skills: ["*"]
 default_workflow:
   - github-actions-ci
   - cd-pipeline
