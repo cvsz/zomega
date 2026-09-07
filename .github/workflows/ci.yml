@@ -43,10 +43,13 @@ jobs:
             migrations/versions/0007_service_account_roles.py
             migrations/versions/0008_expand_primary_scopes.py
             restore-verify.sh
+            scripts/production-operator-complete.sh
+            scripts/production-operator-verify.sh
             .github/workflows/dr-verify.yml
             deploy/helm/zomega/templates/pdb.yaml
             deploy/kubernetes/pdb.yaml
             docs/COMMERCIAL.md docs/PRIVATE_REGISTRY.md docs/DISASTER_RECOVERY.md
+            docs/PRODUCTION_OPERATOR_COMPLETION.md
             requirements-dev.txt
           )
           for path in "${required[@]}"; do
@@ -71,7 +74,7 @@ jobs:
       - name: Mypy security and commercial control-plane
         run: mypy zomega/security.py zomega/audit.py zomega/key_service.py zomega/commercial.py zomega/registry.py zomega/marketplace.py
       - name: Validate operational shell scripts
-        run: bash -n backup.sh restore-verify.sh verify.sh install.sh
+        run: bash -n backup.sh restore-verify.sh verify.sh install.sh scripts/production-operator-complete.sh scripts/production-operator-verify.sh
       - name: Unit tests
         run: python -m unittest discover -s tests -v
       - name: Validate catalog contract

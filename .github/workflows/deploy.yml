@@ -42,18 +42,65 @@ jobs:
           printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl cluster-info
+      - name: Sync production runtime secret
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          ZOMEGA_API_KEY_PEPPER: ${{ secrets.ZOMEGA_API_KEY_PEPPER }}
+          ZOMEGA_ADMIN_TOKEN: ${{ secrets.ZOMEGA_ADMIN_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_CREDITS_1000: ${{ secrets.STRIPE_PRICE_CREDITS_1000 }}
+          STRIPE_PRICE_CREDITS_5000: ${{ secrets.STRIPE_PRICE_CREDITS_5000 }}
+          STRIPE_PRICE_CREDITS_20000: ${{ secrets.STRIPE_PRICE_CREDITS_20000 }}
+          ZOMEGA_PUBLIC_URL: ${{ vars.ZOMEGA_PUBLIC_URL || vars.ZOMEGA_HEALTH_URL || vars.OMEGA_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          required=(
+            DATABASE_URL REDIS_URL ZOMEGA_API_KEY_PEPPER ZOMEGA_ADMIN_TOKEN
+            OPENAI_API_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
+            STRIPE_PRICE_CREDITS_1000 STRIPE_PRICE_CREDITS_5000 STRIPE_PRICE_CREDITS_20000
+            ZOMEGA_PUBLIC_URL
+          )
+          for name in "${required[@]}"; do
+            test -n "${!name:-}" || { echo "Missing production runtime setting: $name" >&2; exit 1; }
+          done
+          kubectl create namespace zomega --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n zomega create secret generic zomega-runtime \
+            --from-literal=ZOMEGA_ENV=production \
+            --from-literal=ZOMEGA_PUBLIC_URL="$ZOMEGA_PUBLIC_URL" \
+            --from-literal=DATABASE_URL="$DATABASE_URL" \
+            --from-literal=REDIS_URL="$REDIS_URL" \
+            --from-literal=ZOMEGA_API_KEY_PEPPER="$ZOMEGA_API_KEY_PEPPER" \
+            --from-literal=ZOMEGA_ADMIN_TOKEN="$ZOMEGA_ADMIN_TOKEN" \
+            --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
+            --from-literal=STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" \
+            --from-literal=STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" \
+            --from-literal=STRIPE_PRICE_CREDITS_1000="$STRIPE_PRICE_CREDITS_1000" \
+            --from-literal=STRIPE_PRICE_CREDITS_5000="$STRIPE_PRICE_CREDITS_5000" \
+            --from-literal=STRIPE_PRICE_CREDITS_20000="$STRIPE_PRICE_CREDITS_20000" \
+            --dry-run=client -o yaml | kubectl apply -f -
       - name: Deploy atomically
         shell: bash
         run: |
           set -euo pipefail
-          helm upgrade --install zomega deploy/helm/zomega             --namespace zomega             --create-namespace             --set image.repository=ghcr.io/${{ github.repository }}             --set image.tag=${{ inputs.image_tag }}             --atomic             --wait             --timeout 10m
+          helm upgrade --install zomega deploy/helm/zomega \
+            --namespace zomega \
+            --create-namespace \
+            --set image.repository=ghcr.io/${{ github.repository }} \
+            --set image.tag=${{ inputs.image_tag }} \
+            --atomic \
+            --wait \
+            --timeout 10m
           kubectl -n zomega rollout status deployment/zomega-api --timeout=5m
           kubectl -n zomega rollout status deployment/zomega-worker --timeout=5m
       - name: External readiness verification
         env:
-          ZOMEGA_HEALTH_URL: ${{ vars.ZOMEGA_HEALTH_URL || vars.zomega_HEALTH_URL }}
+          ZOMEGA_HEALTH_URL: ${{ vars.ZOMEGA_HEALTH_URL || vars.OMEGA_HEALTH_URL || vars.zomega_HEALTH_URL }}
         run: |
           set -euo pipefail
           test -n "$ZOMEGA_HEALTH_URL"
           curl --fail --show-error --silent --retry 8 --retry-all-errors \
-            "$ZOMEGA_HEALTH_URL/health/ready"
+            "${ZOMEGA_HEALTH_URL%/}/health/ready"
