@@ -89,6 +89,40 @@ else
   echo "Created ruleset $RULESET_NAME"
 fi
 
+echo "==> Reconciling legacy branch protection"
+branch_protection_payload="$(mktemp)"
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload"' EXIT
+cat >"$branch_protection_payload" <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "unit",
+      "integration",
+      "Analyze Actions and Python",
+      "application-security",
+      "dependency-review"
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": true,
+    "required_approving_review_count": 1,
+    "require_last_push_approval": false
+  },
+  "restrictions": null,
+  "required_linear_history": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "block_creations": false,
+  "required_conversation_resolution": true,
+  "lock_branch": false,
+  "allow_fork_syncing": true
+}
+JSON
+gh api --method PUT "repos/$REPO/branches/$BRANCH/protection" --input "$branch_protection_payload" >/dev/null
+
 echo "==> Configuring protected GitHub Environment: $ENVIRONMENT"
 reviewer_id="$(gh api user --jq .id)"
 environment_payload="$(mktemp)"
