@@ -126,7 +126,7 @@ gh api --method PUT "repos/$REPO/branches/$BRANCH/protection" --input "$branch_p
 echo "==> Configuring protected GitHub Environment: $ENVIRONMENT"
 reviewer_id="$(gh api user --jq .id)"
 environment_payload="$(mktemp)"
-trap 'rm -f "$security_payload" "$ruleset_payload" "$environment_payload"' EXIT
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$environment_payload"' EXIT
 cat >"$environment_payload" <<JSON
 {
   "wait_timer": 0,
