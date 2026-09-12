@@ -105,6 +105,24 @@ restrictions_payload="$(jq -c '
   }
   end
 ' <<<"$existing_branch_protection")"
+dismissal_restrictions_payload="$(jq -c '
+  if .required_pull_request_reviews.dismissal_restrictions == null then {}
+  else {
+    users: [.required_pull_request_reviews.dismissal_restrictions.users[]?.login],
+    teams: [.required_pull_request_reviews.dismissal_restrictions.teams[]?.slug],
+    apps: [.required_pull_request_reviews.dismissal_restrictions.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
+bypass_pull_request_allowances_payload="$(jq -c '
+  if .required_pull_request_reviews.bypass_pull_request_allowances == null then {}
+  else {
+    users: [.required_pull_request_reviews.bypass_pull_request_allowances.users[]?.login],
+    teams: [.required_pull_request_reviews.bypass_pull_request_allowances.teams[]?.slug],
+    apps: [.required_pull_request_reviews.bypass_pull_request_allowances.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
 cat >"$branch_protection_payload" <<JSON
 {
   "required_status_checks": {
@@ -119,10 +137,12 @@ cat >"$branch_protection_payload" <<JSON
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
+    "dismissal_restrictions": $dismissal_restrictions_payload,
     "dismiss_stale_reviews": true,
     "require_code_owner_reviews": true,
     "required_approving_review_count": 1,
-    "require_last_push_approval": false
+    "require_last_push_approval": false,
+    "bypass_pull_request_allowances": $bypass_pull_request_allowances_payload
   },
   "restrictions": $restrictions_payload,
   "required_linear_history": false,
