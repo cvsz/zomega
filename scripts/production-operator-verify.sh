@@ -44,13 +44,15 @@ if branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>/dev/
   else
     pending "branch protection strict status checks"
   fi
-  for context in unit integration 'Analyze Actions and Python' application-security dependency-review; do
-    if jq -e --arg context "$context" '.required_status_checks.contexts | index($context) != null' <<<"$branch_protection" >/dev/null; then
-      pass "branch protection required check: $context"
-    else
-      pending "branch protection required check: $context"
-    fi
-  done
+
+  expected_contexts="$(jq -cn '["unit","integration","Analyze Actions and Python","application-security","dependency-review"] | sort')"
+  if jq -e --argjson expected "$expected_contexts" '(.required_status_checks.contexts // [] | sort) == $expected' <<<"$branch_protection" >/dev/null; then
+    pass "branch protection required checks exactly match workflow checks"
+  else
+    actual_contexts="$(jq -c '(.required_status_checks.contexts // [] | sort)' <<<"$branch_protection")"
+    pending "branch protection required checks exact set (expected=$expected_contexts actual=$actual_contexts)"
+  fi
+
   if jq -e '.required_pull_request_reviews.required_approving_review_count >= 1' <<<"$branch_protection" >/dev/null; then
     pass "branch protection review requirement"
   else
