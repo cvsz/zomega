@@ -92,7 +92,17 @@ fi
 echo "==> Reconciling legacy branch protection"
 branch_protection_payload="$(mktemp)"
 trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload"' EXIT
-cat >"$branch_protection_payload" <<'JSON'
+existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>/dev/null || printf '{}')"
+restrictions_payload="$(jq -c '
+  if .restrictions == null then null
+  else {
+    users: [.restrictions.users[]?.login],
+    teams: [.restrictions.teams[]?.slug],
+    apps: [.restrictions.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
+cat >"$branch_protection_payload" <<JSON
 {
   "required_status_checks": {
     "strict": true,
@@ -111,7 +121,7 @@ cat >"$branch_protection_payload" <<'JSON'
     "required_approving_review_count": 1,
     "require_last_push_approval": false
   },
-  "restrictions": null,
+  "restrictions": $restrictions_payload,
   "required_linear_history": false,
   "allow_force_pushes": false,
   "allow_deletions": false,
