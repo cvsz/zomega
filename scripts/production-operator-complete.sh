@@ -92,7 +92,10 @@ fi
 echo "==> Reconciling legacy branch protection"
 branch_protection_payload="$(mktemp)"
 trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload"' EXIT
-existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>/dev/null || printf '{}')"
+if ! existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection")"; then
+  echo "ERROR: unable to read existing branch protection for $BRANCH; refusing to reconcile without preserving current restrictions" >&2
+  exit 1
+fi
 restrictions_payload="$(jq -c '
   if .restrictions == null then null
   else {
