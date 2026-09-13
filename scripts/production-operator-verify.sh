@@ -36,6 +36,37 @@ else
   done
 fi
 
+branch_protection=""
+if branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>/dev/null)"; then
+  pass "legacy branch protection readable"
+  if jq -e '.required_status_checks.strict == true' <<<"$branch_protection" >/dev/null; then
+    pass "branch protection strict status checks"
+  else
+    pending "branch protection strict status checks"
+  fi
+
+  expected_contexts="$(jq -cn '["unit","integration","Analyze Actions and Python","application-security","dependency-review"] | sort')"
+  if jq -e --argjson expected "$expected_contexts" '(.required_status_checks.contexts // [] | sort) == $expected' <<<"$branch_protection" >/dev/null; then
+    pass "branch protection required checks exactly match workflow checks"
+  else
+    actual_contexts="$(jq -c '(.required_status_checks.contexts // [] | sort)' <<<"$branch_protection")"
+    pending "branch protection required checks exact set (expected=$expected_contexts actual=$actual_contexts)"
+  fi
+
+  if jq -e '.required_pull_request_reviews.required_approving_review_count >= 1' <<<"$branch_protection" >/dev/null; then
+    pass "branch protection review requirement"
+  else
+    pending "branch protection review requirement"
+  fi
+  if jq -e '.allow_force_pushes.enabled == false and .allow_deletions.enabled == false' <<<"$branch_protection" >/dev/null; then
+    pass "branch protection blocks force-push and deletion"
+  else
+    pending "branch protection blocks force-push and deletion"
+  fi
+else
+  pending "legacy branch protection readable"
+fi
+
 repo_json="$(gh api "repos/$REPO")"
 if jq -e '.security_and_analysis.secret_scanning.status == "enabled"' <<<"$repo_json" >/dev/null 2>&1; then pass "secret scanning enabled"; else pending "secret scanning enabled"; fi
 if jq -e '.security_and_analysis.secret_scanning_push_protection.status == "enabled"' <<<"$repo_json" >/dev/null 2>&1; then pass "push protection enabled"; else pending "push protection enabled"; fi
