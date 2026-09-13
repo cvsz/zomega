@@ -131,17 +131,21 @@ bypass_pull_request_allowances_payload="$(jq -c '
   end
 ' <<<"$existing_branch_protection")"
 required_linear_history_payload="$(jq -r 'if .required_linear_history == null then false else (.required_linear_history.enabled == true) end' <<<"$existing_branch_protection")"
+lock_branch_payload="$(jq -r 'if .lock_branch == null then false else (.lock_branch.enabled == true) end' <<<"$existing_branch_protection")"
+required_checks_payload="$(jq -c '
+  ["unit", "integration", "Analyze Actions and Python", "application-security", "dependency-review"] as $required
+  | ($required | map(. as $context
+      | ([.required_status_checks.checks[]? | select(.context == $context)] | first) as $existing
+      | if ($existing != null and $existing.app_id != null)
+        then {context: $context, app_id: $existing.app_id}
+        else {context: $context}
+        end))
+' <<<"$existing_branch_protection")"
 cat >"$branch_protection_payload" <<JSON
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": [
-      "unit",
-      "integration",
-      "Analyze Actions and Python",
-      "application-security",
-      "dependency-review"
-    ]
+    "checks": $required_checks_payload
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
@@ -158,7 +162,7 @@ cat >"$branch_protection_payload" <<JSON
   "allow_deletions": false,
   "block_creations": false,
   "required_conversation_resolution": true,
-  "lock_branch": false,
+  "lock_branch": $lock_branch_payload,
   "allow_fork_syncing": true
 }
 JSON
