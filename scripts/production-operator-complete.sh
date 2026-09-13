@@ -91,9 +91,16 @@ fi
 
 echo "==> Reconciling legacy branch protection"
 branch_protection_payload="$(mktemp)"
-trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload"' EXIT
-if ! existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection")"; then
-  echo "ERROR: unable to read existing branch protection for $BRANCH; refusing to reconcile without preserving current restrictions" >&2
+branch_protection_error="$(mktemp)"
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$branch_protection_error"' EXIT
+if existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>"$branch_protection_error")"; then
+  :
+elif grep -Eq 'HTTP 404|404 Not Found|status.?404' "$branch_protection_error"; then
+  echo "No legacy branch protection exists for $BRANCH; bootstrapping it"
+  existing_branch_protection='{}'
+else
+  cat "$branch_protection_error" >&2
+  echo "ERROR: unable to read existing branch protection for $BRANCH; refusing to reconcile without preserving current controls" >&2
   exit 1
 fi
 restrictions_payload="$(jq -c '
@@ -123,6 +130,7 @@ bypass_pull_request_allowances_payload="$(jq -c '
   }
   end
 ' <<<"$existing_branch_protection")"
+required_linear_history_payload="$(jq -r 'if .required_linear_history == null then false else (.required_linear_history.enabled == true) end' <<<"$existing_branch_protection")"
 cat >"$branch_protection_payload" <<JSON
 {
   "required_status_checks": {
@@ -145,7 +153,7 @@ cat >"$branch_protection_payload" <<JSON
     "bypass_pull_request_allowances": $bypass_pull_request_allowances_payload
   },
   "restrictions": $restrictions_payload,
-  "required_linear_history": false,
+  "required_linear_history": $required_linear_history_payload,
   "allow_force_pushes": false,
   "allow_deletions": false,
   "block_creations": false,
@@ -159,7 +167,7 @@ gh api --method PUT "repos/$REPO/branches/$BRANCH/protection" --input "$branch_p
 echo "==> Configuring protected GitHub Environment: $ENVIRONMENT"
 reviewer_id="$(gh api user --jq .id)"
 environment_payload="$(mktemp)"
-trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$environment_payload"' EXIT
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$branch_protection_error" "$environment_payload"' EXIT
 cat >"$environment_payload" <<JSON
 {
   "wait_timer": 0,
