@@ -12,6 +12,7 @@ for cmd in gh jq; do
 done
 
 gh auth status >/dev/null
+repo_owner_type="$(gh api "repos/$REPO" --jq '.owner.type')"
 
 echo "==> Configuring repository security for $REPO"
 if ! gh api --method PUT "repos/$REPO/vulnerability-alerts" >/dev/null; then
@@ -130,8 +131,25 @@ bypass_pull_request_allowances_payload="$(jq -c '
   }
   end
 ' <<<"$existing_branch_protection")"
+required_pull_request_reviews_payload="$(jq -cn \
+  --arg owner_type "$repo_owner_type" \
+  --argjson dismissal_restrictions "$dismissal_restrictions_payload" \
+  --argjson bypass_pull_request_allowances "$bypass_pull_request_allowances_payload" '
+  {
+    dismiss_stale_reviews: true,
+    require_code_owner_reviews: true,
+    required_approving_review_count: 1,
+    require_last_push_approval: false
+  }
+  + if $owner_type == "Organization" then {
+      dismissal_restrictions: $dismissal_restrictions,
+      bypass_pull_request_allowances: $bypass_pull_request_allowances
+    } else {} end
+')"
 required_linear_history_payload="$(jq -r 'if .required_linear_history == null then false else (.required_linear_history.enabled == true) end' <<<"$existing_branch_protection")"
 lock_branch_payload="$(jq -r 'if .lock_branch == null then false else (.lock_branch.enabled == true) end' <<<"$existing_branch_protection")"
+block_creations_payload="$(jq -r 'if .block_creations == null then false else (.block_creations.enabled == true) end' <<<"$existing_branch_protection")"
+allow_fork_syncing_payload="$(jq -r 'if .allow_fork_syncing == null then true else (.allow_fork_syncing.enabled == true) end' <<<"$existing_branch_protection")"
 required_checks_payload="$(jq -c '
   . as $root
   | ["unit", "integration", "Analyze Actions and Python", "application-security", "dependency-review"] as $required
@@ -149,22 +167,15 @@ cat >"$branch_protection_payload" <<JSON
     "checks": $required_checks_payload
   },
   "enforce_admins": true,
-  "required_pull_request_reviews": {
-    "dismissal_restrictions": $dismissal_restrictions_payload,
-    "dismiss_stale_reviews": true,
-    "require_code_owner_reviews": true,
-    "required_approving_review_count": 1,
-    "require_last_push_approval": false,
-    "bypass_pull_request_allowances": $bypass_pull_request_allowances_payload
-  },
+  "required_pull_request_reviews": $required_pull_request_reviews_payload,
   "restrictions": $restrictions_payload,
   "required_linear_history": $required_linear_history_payload,
   "allow_force_pushes": false,
   "allow_deletions": false,
-  "block_creations": false,
+  "block_creations": $block_creations_payload,
   "required_conversation_resolution": true,
   "lock_branch": $lock_branch_payload,
-  "allow_fork_syncing": true
+  "allow_fork_syncing": $allow_fork_syncing_payload
 }
 JSON
 gh api --method PUT "repos/$REPO/branches/$BRANCH/protection" --input "$branch_protection_payload" >/dev/null
