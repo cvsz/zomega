@@ -14,6 +14,7 @@ permissions:
 jobs:
   application-security:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -33,6 +34,16 @@ jobs:
         run: bandit -q -r zomega -x tests
       - name: Build production image
         run: docker build --pull -t zomega-security-scan:${{ github.sha }} .
+      - name: Capture image identity and resolved OS package manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="zomega-security-scan:${GITHUB_SHA}"
+          docker image inspect "$image" --format 'image_config_digest={{.Id}}' > zomega-image-evidence.txt
+          printf 'source_commit=%s\nbase_image=python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704\n' "$GITHUB_SHA" >> zomega-image-evidence.txt
+          docker run --rm --entrypoint cat "$image" /usr/share/zomega/os-packages.tsv > zomega-os-packages.tsv
+          test -s zomega-os-packages.tsv
+          sha256sum zomega-os-packages.tsv >> zomega-image-evidence.txt
       - name: Filesystem, secret, dependency and IaC scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -49,9 +60,20 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: true
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+      - name: Generate SBOM for the exact scanned image
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          path: .
+          image: zomega-security-scan:${{ github.sha }}
           format: spdx-json
-          artifact-name: zomega-sbom.spdx.json
+          output-file: zomega-image-sbom.spdx.json
+          artifact-name: zomega-image-sbom-${{ github.sha }}.spdx.json
+          upload-release-assets: false
+      - name: Upload image identity and OS package evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: zomega-image-build-evidence-${{ github.sha }}
+          path: |
+            zomega-image-evidence.txt
+            zomega-os-packages.tsv
+          if-no-files-found: error
+          retention-days: 30
