@@ -35,12 +35,14 @@ jobs:
       - name: Build production image
         run: docker build --pull -t zomega-security-scan:${{ github.sha }} .
       - name: Capture image identity and resolved OS package manifest
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           image="zomega-security-scan:${GITHUB_SHA}"
           docker image inspect "$image" --format 'image_config_digest={{.Id}}' > zomega-image-evidence.txt
-          printf 'source_commit=%s\nbase_image=python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704\n' "$GITHUB_SHA" >> zomega-image-evidence.txt
+          printf 'tested_ref_commit=%s\npr_head_commit=%s\nbase_image=python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704\n' "$GITHUB_SHA" "$PR_HEAD_SHA" >> zomega-image-evidence.txt
           docker run --rm --entrypoint cat "$image" /usr/share/zomega/os-packages.tsv > zomega-os-packages.tsv
           test -s zomega-os-packages.tsv
           sha256sum zomega-os-packages.tsv >> zomega-image-evidence.txt
