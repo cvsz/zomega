@@ -21,12 +21,15 @@ The image build runs `apt-get update` and `apt-get upgrade -y --no-install-recom
 
 Because APT resolves packages from the configured repositories at build time, pinning the base image alone does not make the complete image byte-for-byte reproducible. The security workflow therefore:
 
-- builds one local image for the exact source commit;
-- records its local image-config digest and source/base references;
+- builds one local image for the exact workflow-tested ref;
+- records the tested ref commit (`GITHUB_SHA`) and, for pull requests, the PR head SHA separately;
+- records the local image-config digest and pinned base reference;
 - extracts and hashes the resolved OS package manifest;
 - runs the blocking HIGH/CRITICAL Trivy scan against that same local image;
 - generates an SPDX JSON SBOM from that same local image; and
 - uploads the image SBOM and OS package evidence as workflow artifacts (30-day retention for the OS manifest evidence).
+
+For pull requests, GitHub's default `GITHUB_SHA` identifies the synthetic merge ref used by the workflow. The evidence artifact records both that tested ref and the PR head so reviewers can reconcile the result to the exact candidate head.
 
 The local image-config digest is not a registry manifest digest. No registry publication or production deployment is performed by this candidate. The release workflow must record the pushed OCI manifest digest and verify its signature/provenance and SBOM association before deployment.
 
@@ -37,6 +40,7 @@ Trivy remains blocking for HIGH/CRITICAL findings. No CVE ignore, scanner bypass
 - Run the complete unit, integration, dependency audit, SAST, and security workflows on the final exact PR head.
 - Confirm the Trivy container scan passes for the image built from that head.
 - Verify the uploaded SBOM describes the scanned image and the package manifest is non-empty and hash-verifiable.
+- Reconcile `pr_head_commit` and `tested_ref_commit` from the evidence artifact with the current PR metadata.
 - Before release, link the registry image digest, SBOM, and signed provenance to the same approved source commit.
 - Verify deployment smoke tests, rollback acceptance, and operator approval independently.
 
