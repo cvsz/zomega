@@ -4,6 +4,12 @@ set -Eeuo pipefail
 : "${ZOMEGA_BACKUP_FILE:?ZOMEGA_BACKUP_FILE required}"
 : "${ZOMEGA_SOURCE_DATABASE_URL:?ZOMEGA_SOURCE_DATABASE_URL required; refusing restore without source identity verification}"
 : "${ZOMEGA_RESTORE_VERIFY_DATABASE_URL:?ZOMEGA_RESTORE_VERIFY_DATABASE_URL required}"
+: "${ZOMEGA_RESTORE_TARGET_MARKER:?ZOMEGA_RESTORE_TARGET_MARKER required; refusing restore without a pre-marked disposable target}"
+
+if [[ ! "${ZOMEGA_RESTORE_TARGET_MARKER}" =~ ^[A-Za-z0-9_-]{32,128}$ ]]; then
+  echo "ZOMEGA_RESTORE_TARGET_MARKER must be a 32-128 character token." >&2
+  exit 2
+fi
 
 if [[ "${ZOMEGA_RESTORE_CONFIRMATION:-}" != "DRILL" ]]; then
   echo "Refusing restore verification without ZOMEGA_RESTORE_CONFIRMATION=DRILL" >&2
@@ -32,12 +38,28 @@ database_cluster_identity() {
   printf '%s' "$identity"
 }
 
+verify_disposable_target_marker() {
+  local url="$1"
+  local marker
+  if ! marker="$(psql "$url" -X -qAt -v ON_ERROR_STOP=1 -c \
+    "SELECT COALESCE(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = current_database()")"; then
+    echo "Unable to verify disposable restore target marker; refusing destructive restore." >&2
+    return 1
+  fi
+  if [[ "$marker" != "ZOMEGA_DISPOSABLE_RESTORE_TARGET:${ZOMEGA_RESTORE_TARGET_MARKER}" ]]; then
+    echo "Restore target is not marked as the approved disposable database; refusing destructive restore." >&2
+    return 1
+  fi
+}
+
 SOURCE_CLUSTER_ID="$(database_cluster_identity "$SOURCE_URL")"
 TARGET_CLUSTER_ID="$(database_cluster_identity "$RESTORE_URL")"
 if [[ "$SOURCE_CLUSTER_ID" == "$TARGET_CLUSTER_ID" ]]; then
   echo "Refusing restore into the source PostgreSQL cluster; target must be a separate cluster." >&2
   exit 2
 fi
+
+verify_disposable_target_marker "$RESTORE_URL"
 
 pg_restore --dbname="$RESTORE_URL" --clean --if-exists --no-owner --no-acl "$ZOMEGA_BACKUP_FILE"
 
