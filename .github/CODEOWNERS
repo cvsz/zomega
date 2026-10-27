@@ -3,3 +3,13 @@
 
 /.github/ @cvsz
 /SECURITY.md @cvsz
+
+# Independent code-owner review for destructive disaster-recovery controls.
+/backup.sh @cvsz @policedbc
+/restore.sh @cvsz @policedbc
+/restore-verify.sh @cvsz @policedbc
+/rollback.sh @cvsz @policedbc
+/.github/workflows/dr-verify.yml @cvsz @policedbc
+/.github/CODEOWNERS @cvsz @policedbc
+/docs/DISASTER_RECOVERY.md @cvsz @policedbc
+/tests/test_restore_verify_safety.py @cvsz @policedbc
