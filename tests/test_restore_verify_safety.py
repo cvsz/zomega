@@ -10,6 +10,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "restore-verify.sh"
+TARGET_MARKER = "0123456789abcdef0123456789abcdef"
+TARGET_MARKER_COMMENT = f"ZOMEGA_DISPOSABLE_RESTORE_TARGET:{TARGET_MARKER}"
 
 
 class RestoreVerifySafetyTests(unittest.TestCase):
@@ -45,6 +47,9 @@ class RestoreVerifySafetyTests(unittest.TestCase):
             '    [[ "${FAKE_TARGET_FAIL:-0}" != 1 ]] || exit 42\n'
             '    printf \'%s\\n\' "${FAKE_TARGET_IDENTITY}"\n'
             "  fi\n"
+            'elif [[ "$query" == *shobj_description* ]]; then\n'
+            '  [[ "${FAKE_TARGET_MARKER_FAIL:-0}" != 1 ]] || exit 43\n'
+            '  printf \'%s\\n\' "${FAKE_TARGET_MARKER:-}"\n'
             'elif [[ "$query" == *version_num* ]]; then printf \'0008\\n\'\n'
             'elif [[ "$query" == *available_credits* ]]; then printf \'0\\n\'\n'
             'elif [[ "$query" == *reserved_credits* ]]; then printf \'0\\n\'\n'
@@ -70,8 +75,10 @@ class RestoreVerifySafetyTests(unittest.TestCase):
                 "ZOMEGA_SOURCE_DATABASE_URL": "postgresql://source-host/source_db",
                 "ZOMEGA_RESTORE_VERIFY_DATABASE_URL": "postgresql://target-host/restore_db",
                 "ZOMEGA_RESTORE_CONFIRMATION": "DRILL",
+                "ZOMEGA_RESTORE_TARGET_MARKER": TARGET_MARKER,
                 "FAKE_SOURCE_IDENTITY": "111",
                 "FAKE_TARGET_IDENTITY": "222",
+                "FAKE_TARGET_MARKER": TARGET_MARKER_COMMENT,
                 "PG_RESTORE_MARKER": str(self.marker),
             }
         )
@@ -91,6 +98,25 @@ class RestoreVerifySafetyTests(unittest.TestCase):
     def test_requires_source_database_url(self):
         result = self.run_script(ZOMEGA_SOURCE_DATABASE_URL="")
         self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.marker.exists())
+
+    def test_requires_disposable_target_marker(self):
+        result = self.run_script(ZOMEGA_RESTORE_TARGET_MARKER="")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_target_without_matching_disposable_marker(self):
+        result = self.run_script(
+            FAKE_TARGET_MARKER="ZOMEGA_DISPOSABLE_RESTORE_TARGET:wrong-marker"
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not marked as the approved disposable database", result.stderr)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_when_target_marker_cannot_be_verified(self):
+        result = self.run_script(FAKE_TARGET_MARKER_FAIL="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unable to verify disposable restore target marker", result.stderr)
         self.assertFalse(self.marker.exists())
 
     def test_refuses_same_postgres_cluster_even_when_database_names_differ(self):
@@ -120,7 +146,7 @@ class RestoreVerifySafetyTests(unittest.TestCase):
         self.assertIn("Unable to verify PostgreSQL cluster identity", result.stderr)
         self.assertFalse(self.marker.exists())
 
-    def test_restores_only_after_distinct_identity_check_and_verifies_contents(self):
+    def test_restores_only_after_distinct_marked_target_checks_and_verifies_contents(self):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('"status":"PASS"', result.stdout)
