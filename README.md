@@ -136,20 +136,33 @@ make backup
 
 The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manifest.
 
-Restore verification requires a dedicated disposable restore database, the source connection for identity comparison, and explicit drill confirmation:
+Restore verification requires a dedicated disposable PostgreSQL cluster, the source connection for cluster-identity comparison, an explicit drill confirmation, and a target database marker:
 
 ```bash
 ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
 ZOMEGA_SOURCE_DATABASE_URL=postgresql://.../zomega_source \
 ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
+ZOMEGA_RESTORE_TARGET_MARKER=REPLACE_WITH_32_TO_128_CHARACTER_RANDOM_TOKEN \
 ZOMEGA_RESTORE_CONFIRMATION=DRILL \
 make restore-verify
 ```
 
-Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier reported by both connections and refuses to proceed if either identifier cannot be read, is malformed, or matches the source cluster. This intentionally rejects a different database name on the same PostgreSQL cluster: `pg_restore --clean` is destructive, and database-name inequality alone does not establish an isolated target. `ZOMEGA_RESTORE_CONFIRMATION` must be exactly `DRILL`. The identity query uses `pg_control_system()`; grant only the minimum reviewed permission needed for that query, and keep both URLs in the approved secret store. A distinct cluster identifier is a guardrail, not a substitute for a dedicated disposable target and operator review.
+Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier reported by both connections and refuses to proceed if either identifier cannot be read, is malformed, or matches the source cluster. It also requires the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET:<token>`, where `<token>` is the same 32-128 character random value supplied as `ZOMEGA_RESTORE_TARGET_MARKER`. This marker must be provisioned by an authorized operator only on the dedicated disposable restore database, for example:
 
-GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
-`DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
+```sql
+COMMENT ON DATABASE zomega_restore
+IS 'ZOMEGA_DISPOSABLE_RESTORE_TARGET:REPLACE_WITH_THE_SAME_RANDOM_TOKEN';
+```
+
+Replace the placeholder with the exact random token stored in the approved secret store; do not put the token in source control. Never set this marker on a source or production application database. Missing, unreadable, or mismatched marker fails closed before restore. A marker is an additional guardrail, not a substitute for an isolated disposable target and operator review.
+
+The manual GitHub Disaster Recovery Drill workflow is limited to `main` and uses the protected `production` GitHub Environment. Configure these environment secrets:
+
+- `DR_SOURCE_DATABASE_URL`
+- `DR_RESTORE_DATABASE_URL`
+- `DR_RESTORE_TARGET_MARKER`
+
+The production environment must retain its required-reviewer protection. Do not run a restore workflow until the restore target is separately provisioned, marked, and reviewed. The workflow does not upload the database dump as an Actions artifact and removes its ephemeral backup on completion.
 
 ## Validation
 
