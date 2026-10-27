@@ -2,30 +2,52 @@
 set -Eeuo pipefail
 
 : "${ZOMEGA_BACKUP_FILE:?ZOMEGA_BACKUP_FILE required}"
+: "${ZOMEGA_SOURCE_DATABASE_URL:?ZOMEGA_SOURCE_DATABASE_URL required; refusing restore without source identity verification}"
 : "${ZOMEGA_RESTORE_VERIFY_DATABASE_URL:?ZOMEGA_RESTORE_VERIFY_DATABASE_URL required}"
+
+if [[ "${ZOMEGA_RESTORE_CONFIRMATION:-}" != "DRILL" ]]; then
+  echo "Refusing restore verification without ZOMEGA_RESTORE_CONFIRMATION=DRILL" >&2
+  exit 2
+fi
 
 test -f "$ZOMEGA_BACKUP_FILE"
 test -f "$ZOMEGA_BACKUP_FILE.sha256"
 sha256sum --check "$ZOMEGA_BACKUP_FILE.sha256"
 
+SOURCE_URL="${ZOMEGA_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
 RESTORE_URL="${ZOMEGA_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:}"
-if [[ -n "${ZOMEGA_SOURCE_DATABASE_URL:-}" ]]; then
-  SOURCE_URL="${ZOMEGA_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
-  if [[ "$SOURCE_URL" == "$RESTORE_URL" ]]; then
-    echo "Refusing to restore into source database" >&2
-    exit 2
+
+database_identity() {
+  local url="$1"
+  local identity
+  if ! identity="$(psql "$url" -X -qAt -v ON_ERROR_STOP=1 -c \
+    "SELECT json_build_array(current_database(), (SELECT system_identifier::text FROM pg_control_system()))::text")"; then
+    echo "Unable to verify PostgreSQL database identity; refusing destructive restore." >&2
+    return 1
   fi
+  if [[ -z "$identity" ]]; then
+    echo "PostgreSQL database identity was empty; refusing destructive restore." >&2
+    return 1
+  fi
+  printf '%s' "$identity"
+}
+
+SOURCE_IDENTITY="$(database_identity "$SOURCE_URL")"
+TARGET_IDENTITY="$(database_identity "$RESTORE_URL")"
+if [[ "$SOURCE_IDENTITY" == "$TARGET_IDENTITY" ]]; then
+  echo "Refusing to restore into source database (same cluster system identifier and database name)." >&2
+  exit 2
 fi
 
-pg_restore   --dbname="$RESTORE_URL"   --clean   --if-exists   --no-owner   --no-acl   "$ZOMEGA_BACKUP_FILE"
+pg_restore --dbname="$RESTORE_URL" --clean --if-exists --no-owner --no-acl "$ZOMEGA_BACKUP_FILE"
 
-HEAD="$(psql "$RESTORE_URL" -Atc 'SELECT version_num FROM alembic_version LIMIT 1')"
+HEAD="$(psql "$RESTORE_URL" -X -qAt -v ON_ERROR_STOP=1 -c 'SELECT version_num FROM alembic_version LIMIT 1')"
 test "$HEAD" = "0008"
 
-NEGATIVE_WALLETS="$(psql "$RESTORE_URL" -Atc 'SELECT count(*) FROM wallets WHERE available_credits < 0 OR reserved_credits < 0')"
+NEGATIVE_WALLETS="$(psql "$RESTORE_URL" -X -qAt -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM wallets WHERE available_credits < 0 OR reserved_credits < 0')"
 test "$NEGATIVE_WALLETS" = "0"
 
-RESERVATION_MISMATCH="$(psql "$RESTORE_URL" -Atc "
+RESERVATION_MISMATCH="$(psql "$RESTORE_URL" -X -qAt -v ON_ERROR_STOP=1 -c "
 SELECT count(*)
 FROM wallets w
 LEFT JOIN (
