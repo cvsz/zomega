@@ -136,15 +136,17 @@ make backup
 
 The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manifest.
 
-Restore verification requires a dedicated disposable restore database:
+Restore verification requires a dedicated disposable restore database, the source connection for identity comparison, and explicit drill confirmation:
 
 ```bash
 ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
+ZOMEGA_SOURCE_DATABASE_URL=postgresql://.../zomega_source \
 ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
+ZOMEGA_RESTORE_CONFIRMATION=DRILL \
 make restore-verify
 ```
 
-The script refuses to restore into `ZOMEGA_SOURCE_DATABASE_URL` when supplied.
+Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier and database name reported by both connections. It refuses to proceed if either identity cannot be read, if the identities match, or if `ZOMEGA_RESTORE_CONFIRMATION` is not exactly `DRILL`. The identity query uses `pg_control_system()`; grant only the minimum reviewed permission needed for that query, and keep both URLs in the approved secret store. A distinct identity is a guardrail, not a substitute for a dedicated disposable target and operator review.
 
 GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
 `DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
