@@ -17,25 +17,25 @@ sha256sum --check "$ZOMEGA_BACKUP_FILE.sha256"
 SOURCE_URL="${ZOMEGA_SOURCE_DATABASE_URL/postgresql+psycopg:/postgresql:}"
 RESTORE_URL="${ZOMEGA_RESTORE_VERIFY_DATABASE_URL/postgresql+psycopg:/postgresql:}"
 
-database_identity() {
+database_cluster_identity() {
   local url="$1"
   local identity
   if ! identity="$(psql "$url" -X -qAt -v ON_ERROR_STOP=1 -c \
-    "SELECT json_build_array(current_database(), (SELECT system_identifier::text FROM pg_control_system()))::text")"; then
-    echo "Unable to verify PostgreSQL database identity; refusing destructive restore." >&2
+    "SELECT system_identifier::text FROM pg_control_system()")"; then
+    echo "Unable to verify PostgreSQL cluster identity; refusing destructive restore." >&2
     return 1
   fi
-  if [[ -z "$identity" ]]; then
-    echo "PostgreSQL database identity was empty; refusing destructive restore." >&2
+  if [[ ! "$identity" =~ ^[0-9]+$ ]]; then
+    echo "PostgreSQL cluster identity was empty or invalid; refusing destructive restore." >&2
     return 1
   fi
   printf '%s' "$identity"
 }
 
-SOURCE_IDENTITY="$(database_identity "$SOURCE_URL")"
-TARGET_IDENTITY="$(database_identity "$RESTORE_URL")"
-if [[ "$SOURCE_IDENTITY" == "$TARGET_IDENTITY" ]]; then
-  echo "Refusing to restore into source database (same cluster system identifier and database name)." >&2
+SOURCE_CLUSTER_ID="$(database_cluster_identity "$SOURCE_URL")"
+TARGET_CLUSTER_ID="$(database_cluster_identity "$RESTORE_URL")"
+if [[ "$SOURCE_CLUSTER_ID" == "$TARGET_CLUSTER_ID" ]]; then
+  echo "Refusing restore into the source PostgreSQL cluster; target must be a separate cluster." >&2
   exit 2
 fi
 
