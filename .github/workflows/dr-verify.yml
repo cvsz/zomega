@@ -23,17 +23,23 @@ jobs:
       DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
       ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
       ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
+      ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - uses: actions/checkout@v7
       - name: Require explicit drill confirmation
-        run: test "${{ inputs.confirmation }}" = "DRILL"
+        env:
+          DR_CONFIRMATION: ${{ inputs.confirmation }}
+        run: test "$DR_CONFIRMATION" = "DRILL"
       - name: Validate dedicated database configuration
         shell: bash
         run: |
           set -euo pipefail
           test -n "$DATABASE_URL"
+          test -n "$ZOMEGA_SOURCE_DATABASE_URL"
           test -n "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
-          test "$DATABASE_URL" != "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
+          test "$ZOMEGA_RESTORE_CONFIRMATION" = "DRILL"
+      - name: Test restore safety guards without database access
+        run: python3 -m unittest discover -s tests -p 'test_restore_verify_safety.py' -v
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
