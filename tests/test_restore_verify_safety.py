@@ -70,8 +70,8 @@ class RestoreVerifySafetyTests(unittest.TestCase):
                 "ZOMEGA_SOURCE_DATABASE_URL": "postgresql://source-host/source_db",
                 "ZOMEGA_RESTORE_VERIFY_DATABASE_URL": "postgresql://target-host/restore_db",
                 "ZOMEGA_RESTORE_CONFIRMATION": "DRILL",
-                "FAKE_SOURCE_IDENTITY": '["source_db","111"]',
-                "FAKE_TARGET_IDENTITY": '["restore_db","222"]',
+                "FAKE_SOURCE_IDENTITY": "111",
+                "FAKE_TARGET_IDENTITY": "222",
                 "PG_RESTORE_MARKER": str(self.marker),
             }
         )
@@ -117,7 +117,7 @@ class RestoreVerifySafetyTests(unittest.TestCase):
     def test_refuses_when_source_identity_cannot_be_verified(self):
         result = self.run_script(FAKE_SOURCE_FAIL="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Unable to verify PostgreSQL database identity", result.stderr)
+        self.assertIn("Unable to verify PostgreSQL cluster identity", result.stderr)
         self.assertFalse(self.marker.exists())
 
     def test_restores_only_after_distinct_identity_check_and_verifies_contents(self):
