@@ -42,6 +42,7 @@ class RestoreVerifySafetyTests(unittest.TestCase):
             '    [[ "${FAKE_SOURCE_FAIL:-0}" != 1 ]] || exit 41\n'
             '    printf \'%s\\n\' "${FAKE_SOURCE_IDENTITY}"\n'
             "  else\n"
+            '    [[ "${FAKE_TARGET_FAIL:-0}" != 1 ]] || exit 42\n'
             '    printf \'%s\\n\' "${FAKE_TARGET_IDENTITY}"\n'
             "  fi\n"
             'elif [[ "$query" == *version_num* ]]; then printf \'0008\\n\'\n'
@@ -92,10 +93,25 @@ class RestoreVerifySafetyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(self.marker.exists())
 
-    def test_refuses_same_postgres_cluster_and_database_identity(self):
-        result = self.run_script(FAKE_TARGET_IDENTITY=self.env["FAKE_SOURCE_IDENTITY"])
+    def test_refuses_same_postgres_cluster_even_when_database_names_differ(self):
+        result = self.run_script(
+            FAKE_TARGET_IDENTITY=self.env["FAKE_SOURCE_IDENTITY"],
+            ZOMEGA_RESTORE_VERIFY_DATABASE_URL="postgresql://target-host/other_db",
+        )
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("Refusing to restore into source database", result.stderr)
+        self.assertIn("target must be a separate cluster", result.stderr)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_when_target_cluster_identity_cannot_be_verified(self):
+        result = self.run_script(FAKE_TARGET_FAIL="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unable to verify PostgreSQL cluster identity", result.stderr)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_malformed_cluster_identity(self):
+        result = self.run_script(FAKE_TARGET_IDENTITY='["restore_db","222"]')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("empty or invalid", result.stderr)
         self.assertFalse(self.marker.exists())
 
     def test_refuses_when_source_identity_cannot_be_verified(self):
