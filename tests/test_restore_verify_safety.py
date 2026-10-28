@@ -166,5 +166,29 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", workflow)
         self.assertNotIn("uses: actions/checkout@v7", workflow)
 
+    def test_dr_workflow_scopes_database_secrets_to_required_steps(self):
+        workflow = (ROOT / ".github" / "workflows" / "dr-verify.yml").read_text(
+            encoding="utf-8"
+        )
+        job_scope = workflow.split("    steps:", 1)[0]
+        self.assertNotIn("\\n    env:\\n", job_scope)
+        self.assertIn(
+            "      - name: Create ephemeral backup evidence\\n"
+            "        env:\\n"
+            "          DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}\\n"
+            "        run: ./backup.sh",
+            workflow,
+        )
+        self.assertIn(
+            "      - name: Restore and verify\\n"
+            "        env:\\n"
+            "          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}\\n"
+            "          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}\\n"
+            "          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}\\n"
+            "          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}\\n"
+            "        shell: bash",
+            workflow,
+        )
+
 if __name__ == "__main__":
     unittest.main()
