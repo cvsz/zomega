@@ -154,6 +154,57 @@ class RestoreVerifySafetyTests(unittest.TestCase):
         self.assertIn("--clean", self.marker.read_text(encoding="utf-8"))
 
 
+
+class BackupSafetyTests(unittest.TestCase):
+    def test_backup_respects_explicit_database_url_when_dotenv_exists(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            bin_dir = temp_root / "bin"
+            bin_dir.mkdir()
+            (temp_root / ".env").write_text(
+                "DATABASE_URL=postgresql://wrong.example/zomega\\n",
+                encoding="utf-8",
+            )
+            record = temp_root / "pg-dump-url"
+            pg_dump = bin_dir / "pg_dump"
+            pg_dump.write_text(
+                "#!/usr/bin/env bash\\n"
+                "set -euo pipefail\\n"
+                'printf \'%s\\n\' "$1" > "$PG_DUMP_URL_RECORD"\\n'
+                'dump_file=""\\n'
+                'for arg in "$@"; do\\n'
+                '  case "$arg" in --file=*) dump_file="${arg#--file=}";; esac\\n'
+                "done\\n"
+                'test -n "$dump_file"\\n'
+                'printf "synthetic backup fixture" > "$dump_file"\\n',
+                encoding="utf-8",
+            )
+            pg_dump.chmod(0o755)
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "PATH": f"{bin_dir}{os.pathsep}{env.get('PATH', '')}",
+                    "DATABASE_URL": "postgresql://explicit.example/app",
+                    "PG_DUMP_URL_RECORD": str(record),
+                    "BACKUP_DIR": str(temp_root / "backups"),
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(ROOT / "backup.sh")],
+                cwd=temp_root,
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(
+                record.read_text(encoding="utf-8").strip(),
+                "postgresql://explicit.example/app",
+            )
+
 class RestoreWorkflowSecurityTests(unittest.TestCase):
     def test_dr_workflow_pins_checkout_and_disables_persisted_credentials(self):
         workflow = (ROOT / ".github" / "workflows" / "dr-verify.yml").read_text(
