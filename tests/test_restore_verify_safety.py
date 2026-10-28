@@ -170,24 +170,33 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "dr-verify.yml").read_text(
             encoding="utf-8"
         )
-        job_scope = workflow.split("    steps:", 1)[0]
-        self.assertNotIn("\\n    env:\\n", job_scope)
-        self.assertIn(
-            "      - name: Create ephemeral backup evidence\\n"
-            "        env:\\n"
-            "          DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}\\n"
-            "        run: ./backup.sh",
-            workflow,
+        lines = workflow.splitlines()
+        job_scope = lines[: lines.index("    steps:")]
+        self.assertNotIn("    env:", job_scope)
+
+        backup_start = lines.index("      - name: Create ephemeral backup evidence")
+        self.assertEqual(
+            lines[backup_start : backup_start + 4],
+            [
+                "      - name: Create ephemeral backup evidence",
+                "        env:",
+                "          DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}",
+                "        run: ./backup.sh",
+            ],
         )
-        self.assertIn(
-            "      - name: Restore and verify\\n"
-            "        env:\\n"
-            "          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}\\n"
-            "          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}\\n"
-            "          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}\\n"
-            "          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}\\n"
-            "        shell: bash",
-            workflow,
+
+        restore_start = lines.index("      - name: Restore and verify")
+        self.assertEqual(
+            lines[restore_start : restore_start + 7],
+            [
+                "      - name: Restore and verify",
+                "        env:",
+                "          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}",
+                "          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}",
+                "          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}",
+                "          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}",
+                "        shell: bash",
+            ],
         )
 
 if __name__ == "__main__":
