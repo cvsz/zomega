@@ -162,21 +162,21 @@ class BackupSafetyTests(unittest.TestCase):
             bin_dir = temp_root / "bin"
             bin_dir.mkdir()
             (temp_root / ".env").write_text(
-                "DATABASE_URL=postgresql://wrong.example/zomega\\n",
+                "DATABASE_URL=postgresql://wrong.example/zomega\n",
                 encoding="utf-8",
             )
             record = temp_root / "pg-dump-url"
             pg_dump = bin_dir / "pg_dump"
             pg_dump.write_text(
-                "#!/usr/bin/env bash\\n"
-                "set -euo pipefail\\n"
-                'printf \'%s\\n\' "$1" > "$PG_DUMP_URL_RECORD"\\n'
-                'dump_file=""\\n'
-                'for arg in "$@"; do\\n'
-                '  case "$arg" in --file=*) dump_file="${arg#--file=}";; esac\\n'
-                "done\\n"
-                'test -n "$dump_file"\\n'
-                'printf "synthetic backup fixture" > "$dump_file"\\n',
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                'printf \'%s\n\' "$1" > "$PG_DUMP_URL_RECORD"\n'
+                'dump_file=""\n'
+                'for arg in "$@"; do\n'
+                '  case "$arg" in --file=*) dump_file="${arg#--file=}";; esac\n'
+                "done\n"
+                'test -n "$dump_file"\n'
+                'printf "synthetic backup fixture" > "$dump_file"\n',
                 encoding="utf-8",
             )
             pg_dump.chmod(0o755)
