@@ -174,14 +174,19 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
         job_scope = lines[: lines.index("    steps:")]
         self.assertNotIn("    env:", job_scope)
 
-
-        validation_start = lines.index("      - name: Validate dedicated database configuration")
+        validation_start = lines.index(
+            "      - name: Validate dedicated database configuration"
+        )
         validation_end = lines.index(
             "      - name: Test restore safety guards without database access",
             validation_start,
         )
         validation_block = lines[validation_start:validation_end]
-        self.assertIn("          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}", validation_block)
+        self.assertIn(
+            "          ZOMEGA_SOURCE_DATABASE_URL: "
+            "${{ secrets.DR_SOURCE_DATABASE_URL }}",
+            validation_block,
+        )
         self.assertNotIn('          test -n "$DATABASE_URL"', validation_block)
 
         backup_start = lines.index("      - name: Create ephemeral backup evidence")
@@ -201,9 +206,12 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
             [
                 "      - name: Restore and verify",
                 "        env:",
-                "          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}",
-                "          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}",
-                "          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}",
+                "          ZOMEGA_SOURCE_DATABASE_URL: "
+                "${{ secrets.DR_SOURCE_DATABASE_URL }}",
+                "          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: "
+                "${{ secrets.DR_RESTORE_DATABASE_URL }}",
+                "          ZOMEGA_RESTORE_TARGET_MARKER: "
+                "${{ secrets.DR_RESTORE_TARGET_MARKER }}",
                 "          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}",
                 "        shell: bash",
             ],
