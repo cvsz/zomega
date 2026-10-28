@@ -20,12 +20,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
-      ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}
-      ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,6 +29,11 @@ jobs:
           DR_CONFIRMATION: ${{ inputs.confirmation }}
         run: test "$DR_CONFIRMATION" = "DRILL"
       - name: Validate dedicated database configuration
+        env:
+          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
+          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
+          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}
+          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}
         shell: bash
         run: |
           set -euo pipefail
@@ -51,8 +50,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
       - name: Create ephemeral backup evidence
+        env:
+          DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
         run: ./backup.sh
       - name: Restore and verify
+        env:
+          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
+          ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
+          ZOMEGA_RESTORE_TARGET_MARKER: ${{ secrets.DR_RESTORE_TARGET_MARKER }}
+          ZOMEGA_RESTORE_CONFIRMATION: ${{ inputs.confirmation }}
         shell: bash
         run: |
           set -euo pipefail
