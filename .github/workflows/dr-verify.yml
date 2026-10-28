@@ -37,7 +37,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$DATABASE_URL"
           test -n "$ZOMEGA_SOURCE_DATABASE_URL"
           test -n "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
           test -n "$ZOMEGA_RESTORE_TARGET_MARKER"
