@@ -5,6 +5,7 @@
 `backup.sh` creates:
 
 - PostgreSQL custom-format dump
+- An explicitly supplied `DATABASE_URL` always takes precedence over the local `.env` fallback; the backup script never silently switches to a different database URL
 - SHA-256 checksum
 - JSON evidence manifest with UTC creation time, size, and digest
 
