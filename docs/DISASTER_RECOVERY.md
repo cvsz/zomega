@@ -39,6 +39,7 @@ The manual Disaster Recovery Drill workflow:
 - creates the dump only on the ephemeral runner
 - does not upload the database dump as an Actions artifact
 - deletes the local backup in an `always()` cleanup step
+- injects database credentials only into the validation, backup, and restore steps that require them; offline tests, package installation, checkout, and cleanup receive no database URLs
 
 Required environment secrets:
 
