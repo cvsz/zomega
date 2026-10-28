@@ -156,3 +156,16 @@ class RestoreVerifySafetyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RestoreWorkflowSecurityTests(unittest.TestCase):
+    def test_dr_workflow_pins_checkout_and_disables_persisted_credentials(self):
+        workflow = (ROOT / ".github" / "workflows" / "dr-verify.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            workflow,
+        )
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertNotIn("uses: actions/checkout@v7", workflow)
+
