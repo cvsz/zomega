@@ -174,6 +174,16 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
         job_scope = lines[: lines.index("    steps:")]
         self.assertNotIn("    env:", job_scope)
 
+
+        validation_start = lines.index("      - name: Validate dedicated database configuration")
+        validation_end = lines.index(
+            "      - name: Test restore safety guards without database access",
+            validation_start,
+        )
+        validation_block = lines[validation_start:validation_end]
+        self.assertIn("          ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}", validation_block)
+        self.assertNotIn('          test -n "$DATABASE_URL"', validation_block)
+
         backup_start = lines.index("      - name: Create ephemeral backup evidence")
         self.assertEqual(
             lines[backup_start : backup_start + 4],
