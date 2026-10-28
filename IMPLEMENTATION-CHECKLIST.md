@@ -78,9 +78,10 @@
 - [x] checksummed backup evidence
 - [x] isolated restore verification
 - [x] gated DR workflow
-- [ ] configure production GitHub environment and credentials
+- [x] configure protected production GitHub environment and reviewer
+- [ ] complete all production environment credentials/variables
 - [ ] configure production PostgreSQL/Redis HA and backup storage
-- [x] execute and retain first real production DR drill evidence
+- [ ] execute and retain first real production DR drill evidence
 
 ## GitHub account/repository controls
 
@@ -90,10 +91,29 @@
 - [x] Dependabot security settings
 - [x] production environment reviewers
 
+## Current production-input status
+
+- [x] `DATABASE_URL` present in protected production environment
+- [x] `OPENAI_API_KEY` present in protected production environment
+- [ ] `KUBECONFIG_B64`
+- [ ] `ZOMEGA_HEALTH_URL`
+- [ ] `DR_SOURCE_DATABASE_URL`
+- [ ] `DR_RESTORE_DATABASE_URL`
+- [ ] `REDIS_URL`
+- [ ] `ZOMEGA_API_KEY_PEPPER`
+- [ ] `ZOMEGA_ADMIN_TOKEN`
+- [ ] `STRIPE_SECRET_KEY`
+- [ ] `STRIPE_WEBHOOK_SECRET`
+- [ ] `STRIPE_PRICE_CREDITS_1000`
+- [ ] `STRIPE_PRICE_CREDITS_5000`
+- [ ] `STRIPE_PRICE_CREDITS_20000`
+
 ## Final evidence
 
-- [ ] zomega 3.0 PR CI/Security/CodeQL/Dependency Review pass
+- [x] zomega 3.0 source/commercial PR gates passed
+- [x] operator-automation PR #15 CI/Security/CodeQL/Dependency Review passed
 - [x] fresh database bootstrap is covered by CI
 - [x] upgrade compatibility is covered by CI
-- [ ] live Stripe/OpenAI credentials configured through secret management
+- [x] OpenAI production credential configured through protected environment
+- [ ] Stripe production credentials and Price IDs configured through protected environment
 - [ ] live production readiness endpoint verified

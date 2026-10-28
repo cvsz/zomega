@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           required=(
             README.md ABOUT.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md
-            CHANGELOG.md ROADMAP.md IMPLEMENTATION-CHECKLIST.md
+            CHANGELOG.md ROADMAP.md IMPLEMENTATION-CHECKLIST.md STATUS.md
             .github/CODEOWNERS .github/PULL_REQUEST_TEMPLATE.md
             .github/ISSUE_TEMPLATE/config.yml .github/dependabot.yml
             .editorconfig .gitattributes .env.example Dockerfile Makefile
@@ -161,6 +161,8 @@ jobs:
           from zomega.config import settings
 
           tenant_id = str(uuid.uuid4())
+          with open("/tmp/zomega-legacy-tenant-id", "w", encoding="utf-8") as handle:
+              handle.write(tenant_id)
           engine = create_engine(settings.database_url)
           with engine.begin() as conn:
               conn.execute(text(
@@ -187,10 +189,12 @@ jobs:
           from sqlalchemy import create_engine, text
           from zomega.config import settings
           engine = create_engine(settings.database_url)
+          with open("/tmp/zomega-legacy-tenant-id", encoding="utf-8") as handle:
+              tenant_id = handle.read().strip()
           with engine.connect() as conn:
               scopes = conn.execute(text(
-                  "SELECT scopes FROM api_keys WHERE name='primary' ORDER BY created_at DESC LIMIT 1"
-              )).scalar_one()
+                  "SELECT scopes FROM api_keys WHERE name='primary' AND tenant_id=:tenant_id LIMIT 1"
+              ), {"tenant_id": tenant_id}).scalar_one()
           required = {"dashboard:read","subscription:read","registry:read","registry:write","marketplace:read","marketplace:write"}
           assert required.issubset(set(scopes)), scopes
           print("upgrade_scope_migration=PASS")

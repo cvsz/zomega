@@ -12,6 +12,7 @@ for cmd in gh jq; do
 done
 
 gh auth status >/dev/null
+repo_owner_type="$(gh api "repos/$REPO" --jq '.owner.type')"
 
 echo "==> Configuring repository security for $REPO"
 if ! gh api --method PUT "repos/$REPO/vulnerability-alerts" >/dev/null; then
@@ -89,10 +90,100 @@ else
   echo "Created ruleset $RULESET_NAME"
 fi
 
+echo "==> Reconciling legacy branch protection"
+branch_protection_payload="$(mktemp)"
+branch_protection_error="$(mktemp)"
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$branch_protection_error"' EXIT
+if existing_branch_protection="$(gh api "repos/$REPO/branches/$BRANCH/protection" 2>"$branch_protection_error")"; then
+  :
+elif grep -Eq 'HTTP 404|404 Not Found|status.?404' "$branch_protection_error"; then
+  echo "No legacy branch protection exists for $BRANCH; bootstrapping it"
+  existing_branch_protection='{}'
+else
+  cat "$branch_protection_error" >&2
+  echo "ERROR: unable to read existing branch protection for $BRANCH; refusing to reconcile without preserving current controls" >&2
+  exit 1
+fi
+restrictions_payload="$(jq -c '
+  if .restrictions == null then null
+  else {
+    users: [.restrictions.users[]?.login],
+    teams: [.restrictions.teams[]?.slug],
+    apps: [.restrictions.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
+dismissal_restrictions_payload="$(jq -c '
+  if .required_pull_request_reviews.dismissal_restrictions == null then {}
+  else {
+    users: [.required_pull_request_reviews.dismissal_restrictions.users[]?.login],
+    teams: [.required_pull_request_reviews.dismissal_restrictions.teams[]?.slug],
+    apps: [.required_pull_request_reviews.dismissal_restrictions.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
+bypass_pull_request_allowances_payload="$(jq -c '
+  if .required_pull_request_reviews.bypass_pull_request_allowances == null then {}
+  else {
+    users: [.required_pull_request_reviews.bypass_pull_request_allowances.users[]?.login],
+    teams: [.required_pull_request_reviews.bypass_pull_request_allowances.teams[]?.slug],
+    apps: [.required_pull_request_reviews.bypass_pull_request_allowances.apps[]?.slug]
+  }
+  end
+' <<<"$existing_branch_protection")"
+required_pull_request_reviews_payload="$(jq -cn \
+  --arg owner_type "$repo_owner_type" \
+  --argjson dismissal_restrictions "$dismissal_restrictions_payload" \
+  --argjson bypass_pull_request_allowances "$bypass_pull_request_allowances_payload" '
+  {
+    dismiss_stale_reviews: true,
+    require_code_owner_reviews: true,
+    required_approving_review_count: 1,
+    require_last_push_approval: false
+  }
+  + if $owner_type == "Organization" then {
+      dismissal_restrictions: $dismissal_restrictions,
+      bypass_pull_request_allowances: $bypass_pull_request_allowances
+    } else {} end
+')"
+required_linear_history_payload="$(jq -r 'if .required_linear_history == null then false else (.required_linear_history.enabled == true) end' <<<"$existing_branch_protection")"
+lock_branch_payload="$(jq -r 'if .lock_branch == null then false else (.lock_branch.enabled == true) end' <<<"$existing_branch_protection")"
+block_creations_payload="$(jq -r 'if .block_creations == null then false else (.block_creations.enabled == true) end' <<<"$existing_branch_protection")"
+allow_fork_syncing_payload="$(jq -r 'if .allow_fork_syncing == null then true else (.allow_fork_syncing.enabled == true) end' <<<"$existing_branch_protection")"
+required_checks_payload="$(jq -c '
+  . as $root
+  | ["unit", "integration", "Analyze Actions and Python", "application-security", "dependency-review"] as $required
+  | ($required | map(. as $context
+      | ([$root.required_status_checks.checks[]? | select(.context == $context)] | first) as $existing
+      | if ($existing != null and $existing.app_id != null)
+        then {context: $context, app_id: $existing.app_id}
+        else {context: $context}
+        end))
+' <<<"$existing_branch_protection")"
+cat >"$branch_protection_payload" <<JSON
+{
+  "required_status_checks": {
+    "strict": true,
+    "checks": $required_checks_payload
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": $required_pull_request_reviews_payload,
+  "restrictions": $restrictions_payload,
+  "required_linear_history": $required_linear_history_payload,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "block_creations": $block_creations_payload,
+  "required_conversation_resolution": true,
+  "lock_branch": $lock_branch_payload,
+  "allow_fork_syncing": $allow_fork_syncing_payload
+}
+JSON
+gh api --method PUT "repos/$REPO/branches/$BRANCH/protection" --input "$branch_protection_payload" >/dev/null
+
 echo "==> Configuring protected GitHub Environment: $ENVIRONMENT"
 reviewer_id="$(gh api user --jq .id)"
 environment_payload="$(mktemp)"
-trap 'rm -f "$security_payload" "$ruleset_payload" "$environment_payload"' EXIT
+trap 'rm -f "$security_payload" "$ruleset_payload" "$branch_protection_payload" "$branch_protection_error" "$environment_payload"' EXIT
 cat >"$environment_payload" <<JSON
 {
   "wait_timer": 0,

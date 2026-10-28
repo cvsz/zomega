@@ -36,15 +36,23 @@ These cannot be completed by repository source alone:
 - [x] GitHub main-branch ruleset / required reviews / required checks
 - [x] GitHub secret scanning and push protection
 - [x] GitHub production environment approvals
-- [ ] `KUBECONFIG_B64` and `ZOMEGA_HEALTH_URL`
+- [ ] `KUBECONFIG_B64` and `ZOMEGA_HEALTH_URL` (production environment exists; values still pending)
 - [ ] dedicated `DR_SOURCE_DATABASE_URL` and `DR_RESTORE_DATABASE_URL`
 - [ ] production PostgreSQL HA / replicas / backups storage
 - [ ] production Redis HA
-- [ ] production Stripe Price IDs and webhook secret
-- [ ] production OpenAI API key
+- [ ] production Stripe secret, webhook secret, and Price IDs
+- [x] production OpenAI API key configured in protected environment
 - [ ] DNS, TLS, ingress and external readiness endpoint
 - [ ] external secret manager / rotation process
 - [ ] multi-region database replication and traffic failover
+
+## Current operational priority
+
+1. Reconcile legacy branch protection required-check names with the active ruleset/workflow check names.
+2. Supply remaining protected production inputs (`KUBECONFIG_B64`, Redis, runtime auth secrets, Stripe, health URL, and DR databases).
+3. Run immutable production deploy and verify external readiness.
+4. Execute the first real DR drill against a separate restore database and retain evidence.
+5. Complete HA/backup/observability infrastructure before claiming production resilience.
 
 ## Optional future product surfaces
 

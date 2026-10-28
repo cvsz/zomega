@@ -24,7 +24,7 @@ export STRIPE_PRICE_CREDITS_20000='price_...'
 make operator-apply
 ```
 
-`production-operator-complete.sh` applies the repository ruleset, required review protection, secret scanning/push protection, Dependabot controls, protected `production` environment, supplied environment secrets, and production URL variables. It never prints secret values.
+`production-operator-complete.sh` applies the repository ruleset, reconciles legacy branch protection to the same real workflow check names, required review protection, secret scanning/push protection, Dependabot controls, protected `production` environment, supplied environment secrets, and production URL variables. It never prints secret values.
 
 If `KUBECONFIG_B64` is not supplied but `KUBECONFIG` names a readable file, the script base64-encodes it before storing it as the `KUBECONFIG_B64` environment secret.
 
@@ -34,7 +34,7 @@ If `KUBECONFIG_B64` is not supplied but `KUBECONFIG` names a readable file, the 
 make operator-verify
 ```
 
-Verification is fail-closed. It checks governance, repository security controls, required secret names, latest default-branch checks, the latest Dependency Review, and the external `/health/ready` endpoint. Secret values are not retrieved.
+Verification is fail-closed. It checks both ruleset and legacy branch-protection governance, repository security controls, required secret names, latest default-branch checks, the latest Dependency Review, and the external `/health/ready` endpoint. Secret values are not retrieved.
 
 ## Deployment behavior
 
