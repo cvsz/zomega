@@ -109,6 +109,41 @@ jobs:
           printf 'KUBECONFIG=%s\n' "$kubeconfig" >> "$GITHUB_ENV"
           kubectl cluster-info
 
+      - name: Verify production cluster identity before mutation
+        shell: bash
+        env:
+          EXPECTED_CONTEXT: ${{ vars.ZOMEGA_K8S_EXPECTED_CONTEXT }}
+          EXPECTED_CLUSTER_SERVER: ${{ vars.ZOMEGA_K8S_EXPECTED_CLUSTER_SERVER }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_CONTEXT" || {
+            echo "Missing production variable: ZOMEGA_K8S_EXPECTED_CONTEXT" >&2
+            exit 1
+          }
+          test -n "$EXPECTED_CLUSTER_SERVER" || {
+            echo "Missing production variable: ZOMEGA_K8S_EXPECTED_CLUSTER_SERVER" >&2
+            exit 1
+          }
+          [[ "$EXPECTED_CONTEXT" =~ ^[A-Za-z0-9._:/-]+$ ]] || {
+            echo "Invalid expected Kubernetes context format" >&2
+            exit 1
+          }
+          [[ "$EXPECTED_CLUSTER_SERVER" == https://* ]] || {
+            echo "Expected Kubernetes API server must use HTTPS" >&2
+            exit 1
+          }
+          actual_context="$(kubectl config current-context)"
+          actual_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          [[ "$actual_context" == "$EXPECTED_CONTEXT" ]] || {
+            echo "Kubernetes context does not match the protected production identity" >&2
+            exit 1
+          }
+          [[ "$actual_server" == "$EXPECTED_CLUSTER_SERVER" ]] || {
+            echo "Kubernetes API server does not match the protected production identity" >&2
+            exit 1
+          }
+          echo "production_cluster_identity=verified"
+
       - name: Verify kubectl and API server version skew
         shell: bash
         run: |
