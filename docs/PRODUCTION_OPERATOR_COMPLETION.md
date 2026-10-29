@@ -38,9 +38,11 @@ Verification is fail-closed. It checks governance, repository security controls,
 
 ## Deployment behavior
 
-The `Deploy Production` workflow verifies image provenance, loads the protected kubeconfig, then materializes the `zomega-runtime` Kubernetes Secret from GitHub Environment secrets before Helm runs. This removes the previous hidden prerequisite that `zomega-runtime` had already been created manually.
+The `Deploy Production` workflow is manual-only, runs only when dispatched from `main`, and uses the protected `production` GitHub Environment. It requires a full lowercase 40-character `image_tag` commit SHA and an explicit `kubectl_version` in `vX.Y.Z` form. The selected source commit must be an ancestor of the current `main` commit before production credentials are loaded.
 
-The runtime secret contains connection URLs and provider credentials required by the API, worker, and migration job. It is created with `kubectl create secret --dry-run=client -o yaml | kubectl apply -f -`, so reruns update the secret idempotently without committing secret material.
+The workflow pins each third-party action to a full commit SHA, pins Helm to `v4.3.1`, checks kubectl/API-server version skew, and verifies that the image attestation was signed by this repository's `.github/workflows/release.yml`, with a source digest matching `image_tag`. Attestations from self-hosted runners are rejected. The deployment command uses validated environment variables rather than interpolating dispatch input into shell source.
+
+The runtime secret contains connection URLs and provider credentials required by the API, worker, and migration job. The workflow writes values to a mode-`0600` temporary env file, passes only the file path to `kubectl --from-env-file`, and removes the file on step exit. The kubeconfig is mode `0600` and removed in an `always()` cleanup step. This does not prove production environment approvals, successful deployment, or live readiness; those remain external operator gates.
 
 ## Evidence gates that remain inherently live
 
