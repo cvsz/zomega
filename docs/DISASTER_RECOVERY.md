@@ -22,9 +22,9 @@ Before the destructive command, the script requires:
 - source and target cluster identifiers readable through `pg_control_system()`
 - source and target cluster identifiers to differ
 - `ZOMEGA_RESTORE_TARGET_MARKER` to be a 32-128 character alphanumeric, underscore, or hyphen token
-- the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET:<token>`, with the exact supplied token
+- the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:<lowercase_sha256_hex>` computed from the supplied marker token
 
-An authorized operator must provision the comment only on the dedicated disposable restore database, using a high-entropy random token also stored in the approved secret store. Do not mark a source or production application database. Missing or unreadable identity/marker information fails closed before `pg_restore`. A different cluster ID and target marker are defense-in-depth; they do not replace an isolated target, review, and operator approval.
+An authorized operator must provision only the lowercase SHA-256 digest of the high-entropy marker token in the comment on the dedicated disposable restore database. PostgreSQL comments are readable by any connected user, so never store the raw token in a comment; keep it only in the approved secret store. Do not mark a source or production application database. Missing or unreadable identity/marker information fails closed before `pg_restore`. A different cluster ID and digest marker are defense-in-depth; they do not replace an isolated target, review, and operator approval.
 
 After restore, the script checks Alembic head `0008`, rejects negative wallet balances, and verifies that wallet reserved balances match open reservations.
 
@@ -35,7 +35,7 @@ The manual Disaster Recovery Drill workflow:
 - can execute only when dispatched against `main`
 - uses the protected `production` GitHub Environment; keep required reviewers enabled
 - requires the literal confirmation `DRILL`
-- requires separate source and restore database URLs and a target-marker secret
+- requires separate source and restore database URLs and a raw target-marker token supplied only through the protected environment secret (only its digest is stored in the database comment)
 - runs offline safety tests before database operations
 - creates the dump only on the ephemeral runner
 - does not upload the database dump as an Actions artifact
@@ -48,7 +48,7 @@ Required environment secrets:
 - `DR_RESTORE_DATABASE_URL`
 - `DR_RESTORE_TARGET_MARKER`
 
-A successful offline CI test is not a production DR pass. A real completion record must include the exact workflow URL, target cluster/database identity, restore start/end timestamps, post-restore validation, observed RPO/RTO, backup retention evidence, and operator approval. No restore should be run until the dedicated target and environment protections are verified.
+The target marker digest is a public database label, not a secret; the raw token remains in the protected environment secret. A successful offline CI test is not a production DR pass. A real completion record must include the exact workflow URL, target cluster/database identity, restore start/end timestamps, post-restore validation, observed RPO/RTO, backup retention evidence, and operator approval. No restore should be run until the dedicated target and environment protections are verified.
 
 ## Rollback
 
