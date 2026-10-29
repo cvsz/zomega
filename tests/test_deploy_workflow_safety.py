@@ -54,6 +54,23 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertIn("--deny-self-hosted-runners", self.workflow)
         self.assertIn('gh attestation verify "oci://$image"', self.workflow)
 
+    def test_production_cluster_identity_precedes_mutation(self):
+        self.assertIn("EXPECTED_CONTEXT: ${{ vars.ZOMEGA_K8S_EXPECTED_CONTEXT }}", self.workflow)
+        self.assertIn(
+            "EXPECTED_CLUSTER_SERVER: ${{ vars.ZOMEGA_K8S_EXPECTED_CLUSTER_SERVER }}",
+            self.workflow,
+        )
+        self.assertIn('[[ "$actual_context" == "$EXPECTED_CONTEXT" ]] ||', self.workflow)
+        self.assertIn('[[ "$actual_server" == "$EXPECTED_CLUSTER_SERVER" ]] ||', self.workflow)
+        self.assertLess(
+            self.workflow.index("Verify production cluster identity before mutation"),
+            self.workflow.index("Sync production runtime secret"),
+        )
+        self.assertLess(
+            self.workflow.index("Verify production cluster identity before mutation"),
+            self.workflow.index("Deploy atomically"),
+        )
+
     def test_kubectl_version_skew_is_bounded(self):
         self.assertIn("abs(client_minor - server_minor) > 1", self.workflow)
         self.assertIn('"kubectl", "version", "--client", "-o", "json"', self.workflow)
