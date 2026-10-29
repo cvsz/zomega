@@ -147,14 +147,14 @@ ZOMEGA_RESTORE_CONFIRMATION=DRILL \
 make restore-verify
 ```
 
-Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier reported by both connections and refuses to proceed if either identifier cannot be read, is malformed, or matches the source cluster. It also requires the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET:<token>`, where `<token>` is the same 32-128 character random value supplied as `ZOMEGA_RESTORE_TARGET_MARKER`. This marker must be provisioned by an authorized operator only on the dedicated disposable restore database, for example:
+Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier reported by both connections and refuses to proceed if either identifier cannot be read, is malformed, or matches the source cluster. It computes the SHA-256 digest of the 32-128 character random value supplied as `ZOMEGA_RESTORE_TARGET_MARKER` and requires the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:<lowercase_sha256_hex>`. PostgreSQL comments are readable by any connected user, including for shared database objects, so the raw marker token must never be stored in a comment. Provision only the digest on the dedicated disposable restore database, for example:
 
 ```sql
 COMMENT ON DATABASE zomega_restore
-IS 'ZOMEGA_DISPOSABLE_RESTORE_TARGET:REPLACE_WITH_THE_SAME_RANDOM_TOKEN';
+IS 'ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:REPLACE_WITH_LOWERCASE_SHA256_HEX_OF_MARKER_TOKEN';
 ```
 
-Replace the placeholder with the exact random token stored in the approved secret store; do not put the token in source control. Never set this marker on a source or production application database. Missing, unreadable, or mismatched marker fails closed before restore. A marker is an additional guardrail, not a substitute for an isolated disposable target and operator review.
+Generate the random token with a cryptographically secure generator and keep the raw token only in the approved secret store. Compute its lowercase SHA-256 hex digest and place only that digest in the database comment. Never set this marker on a source or production application database. Missing, unreadable, or mismatched marker fails closed before restore. The digest label is defense-in-depth against accidental target selection; it is not proof of database identity or a substitute for an isolated disposable target and operator review.
 
 The manual GitHub Disaster Recovery Drill workflow is limited to `main` and uses the protected `production` GitHub Environment. Configure these environment secrets:
 
