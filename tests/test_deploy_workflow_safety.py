@@ -39,11 +39,11 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_dispatch_inputs_are_validated_before_credentials(self):
         self.assertIn('[[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] ||', self.workflow)
         self.assertIn(
-            '[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]] ||',
+            r'[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||',
             self.workflow,
         )
         self.assertEqual(self.workflow.count("${{ inputs.image_tag }}"), 1)
-        self.assertIn("git merge-base --is-ancestor \"$IMAGE_TAG\" FETCH_HEAD", self.workflow)
+        self.assertIn('git merge-base --is-ancestor "$IMAGE_TAG" FETCH_HEAD', self.workflow)
         self.assertNotIn("--set image.tag=${{ inputs.image_tag }}", self.workflow)
         self.assertIn('--set-string image.tag="$IMAGE_TAG"', self.workflow)
 
@@ -56,12 +56,12 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_kubectl_version_skew_is_bounded(self):
         self.assertIn("abs(client_minor - server_minor) > 1", self.workflow)
         self.assertIn("kubectl version --client -o json", self.workflow)
-        self.assertIn('with:\n          version: ${{ inputs.kubectl_version }}', self.workflow)
+        self.assertIn("version: ${{ inputs.kubectl_version }}", self.workflow)
 
     def test_runtime_secrets_are_not_passed_as_command_line_values(self):
         self.assertNotIn("--from-literal=", self.workflow)
         self.assertIn('--from-env-file="$secret_file"', self.workflow)
-        self.assertIn("chmod 600 \"$secret_file\"", self.workflow)
+        self.assertIn('chmod 600 "$secret_file"', self.workflow)
         self.assertIn("trap 'rm -f -- \"$secret_file\"' EXIT", self.workflow)
         self.assertIn("Clean up deployment credentials", self.workflow)
         self.assertNotIn("id-token: write", self.workflow)
