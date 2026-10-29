@@ -11,6 +11,13 @@ if [[ ! "${ZOMEGA_RESTORE_TARGET_MARKER}" =~ ^[A-Za-z0-9_-]{32,128}$ ]]; then
   exit 2
 fi
 
+# PostgreSQL comments are readable by connected users; persist only the marker digest.
+TARGET_MARKER_SHA256="$(printf '%s' "$ZOMEGA_RESTORE_TARGET_MARKER" | sha256sum | cut -d ' ' -f1)"
+if [[ ! "$TARGET_MARKER_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
+  echo "Unable to compute disposable restore target marker digest; refusing destructive restore." >&2
+  exit 2
+fi
+
 if [[ "${ZOMEGA_RESTORE_CONFIRMATION:-}" != "DRILL" ]]; then
   echo "Refusing restore verification without ZOMEGA_RESTORE_CONFIRMATION=DRILL" >&2
   exit 2
@@ -46,7 +53,7 @@ verify_disposable_target_marker() {
     echo "Unable to verify disposable restore target marker; refusing destructive restore." >&2
     return 1
   fi
-  if [[ "$marker" != "ZOMEGA_DISPOSABLE_RESTORE_TARGET:${ZOMEGA_RESTORE_TARGET_MARKER}" ]]; then
+  if [[ "$marker" != "ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:${TARGET_MARKER_SHA256}" ]]; then
     echo "Restore target is not marked as the approved disposable database; refusing destructive restore." >&2
     return 1
   fi
