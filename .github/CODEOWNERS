@@ -1,5 +1,6 @@
 # Repository ownership and security-sensitive review rules.
 * @cvsz
+/README.md @cvsz @policedbc
 
 /.github/ @cvsz
 /SECURITY.md @cvsz

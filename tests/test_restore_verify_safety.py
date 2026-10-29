@@ -268,5 +268,11 @@ class RestoreWorkflowSecurityTests(unittest.TestCase):
             ],
         )
 
+    def test_readme_has_independent_code_owner_for_restore_runbook(self):
+        codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+        self.assertRegex(codeowners, r"(?m)^/README\.md\s+@cvsz\s+@policedbc\s*$")
+        self.assertRegex(codeowners, r"(?m)^/\.github/CODEOWNERS\s+@cvsz\s+@policedbc\s*$")
+
+
 if __name__ == "__main__":
     unittest.main()
