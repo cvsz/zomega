@@ -11,7 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "restore-verify.sh"
 TARGET_MARKER = "0123456789abcdef0123456789abcdef"
-TARGET_MARKER_COMMENT = f"ZOMEGA_DISPOSABLE_RESTORE_TARGET:{TARGET_MARKER}"
+TARGET_MARKER_COMMENT = f"ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:{hashlib.sha256(TARGET_MARKER.encode('utf-8')).hexdigest()}"
 
 
 class RestoreVerifySafetyTests(unittest.TestCase):
@@ -107,10 +107,25 @@ class RestoreVerifySafetyTests(unittest.TestCase):
 
     def test_refuses_target_without_matching_disposable_marker(self):
         result = self.run_script(
-            FAKE_TARGET_MARKER="ZOMEGA_DISPOSABLE_RESTORE_TARGET:wrong-marker"
+            FAKE_TARGET_MARKER="ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:" + ("f" * 64)
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("not marked as the approved disposable database", result.stderr)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_plaintext_marker_in_database_comment(self):
+        result = self.run_script(
+            FAKE_TARGET_MARKER=f"ZOMEGA_DISPOSABLE_RESTORE_TARGET:{TARGET_MARKER}"
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not marked as the approved disposable database", result.stderr)
+        self.assertFalse(self.marker.exists())
+
+    def test_refuses_malformed_target_marker_digest(self):
+        result = self.run_script(
+            FAKE_TARGET_MARKER="ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:not-a-digest"
+        )
+        self.assertNotEqual(result.returncode, 0)
         self.assertFalse(self.marker.exists())
 
     def test_refuses_when_target_marker_cannot_be_verified(self):
