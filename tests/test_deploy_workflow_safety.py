@@ -20,9 +20,9 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
 
     def test_all_actions_are_pinned_to_full_commit_shas(self):
         uses = [
-            line.strip().split("#", 1)[0].removeprefix("- uses:").strip()
+            line.strip().split("#", 1)[0].removeprefix("uses:").strip()
             for line in self.workflow.splitlines()
-            if line.strip().startswith("- uses:")
+            if line.strip().startswith("uses:")
         ]
         self.assertEqual(len(uses), 3)
         for reference in uses:
