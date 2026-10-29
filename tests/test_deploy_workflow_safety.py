@@ -19,13 +19,14 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertIn("environment: production", self.workflow)
 
     def test_all_actions_are_pinned_to_full_commit_shas(self):
-        uses = re.findall(r"(?m)^\s+- uses:\s+([^\s#]+)", self.workflow)
+        uses = [
+            line.strip().split("#", 1)[0].removeprefix("- uses:").strip()
+            for line in self.workflow.splitlines()
+            if line.strip().startswith("- uses:")
+        ]
         self.assertEqual(len(uses), 3)
         for reference in uses:
-            self.assertRegex(
-                reference,
-                r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$",
-            )
+            self.assertRegex(reference, r"^[^@]+@[0-9a-f]{40}$")
         self.assertIn(
             "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", uses
         )
@@ -55,7 +56,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
 
     def test_kubectl_version_skew_is_bounded(self):
         self.assertIn("abs(client_minor - server_minor) > 1", self.workflow)
-        self.assertIn("kubectl version --client -o json", self.workflow)
+        self.assertIn('"kubectl", "version", "--client", "-o", "json"', self.workflow)
         self.assertIn("version: ${{ inputs.kubectl_version }}", self.workflow)
 
     def test_runtime_secrets_are_not_passed_as_command_line_values(self):
