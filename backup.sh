@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-if [[ ! "${DATABASE_URL:-}" =~ zomega ]] && [[ -f .env ]]; then
+if [[ -z "${DATABASE_URL:-}" && -f .env ]]; then
   ENV_DB="$(grep -E '^DATABASE_URL=' .env | cut -d '=' -f2-)"
   if [[ -n "$ENV_DB" ]]; then
     DATABASE_URL="$ENV_DB"

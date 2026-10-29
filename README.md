@@ -136,18 +136,33 @@ make backup
 
 The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manifest.
 
-Restore verification requires a dedicated disposable restore database:
+Restore verification requires a dedicated disposable PostgreSQL cluster, the source connection for cluster-identity comparison, an explicit drill confirmation, and a target database marker:
 
 ```bash
 ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
+ZOMEGA_SOURCE_DATABASE_URL=postgresql://.../zomega_source \
 ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
+ZOMEGA_RESTORE_TARGET_MARKER=REPLACE_WITH_32_TO_128_CHARACTER_RANDOM_TOKEN \
+ZOMEGA_RESTORE_CONFIRMATION=DRILL \
 make restore-verify
 ```
 
-The script refuses to restore into `ZOMEGA_SOURCE_DATABASE_URL` when supplied.
+Before invoking `pg_restore --clean --if-exists`, the script compares the PostgreSQL cluster system identifier reported by both connections and refuses to proceed if either identifier cannot be read, is malformed, or matches the source cluster. It computes the SHA-256 digest of the 32-128 character random value supplied as `ZOMEGA_RESTORE_TARGET_MARKER` and requires the target database comment to equal `ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:<lowercase_sha256_hex>`. PostgreSQL comments are readable by any connected user, including for shared database objects, so the raw marker token must never be stored in a comment. Provision only the digest on the dedicated disposable restore database, for example:
 
-GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
-`DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
+```sql
+COMMENT ON DATABASE zomega_restore
+IS 'ZOMEGA_DISPOSABLE_RESTORE_TARGET_SHA256:REPLACE_WITH_LOWERCASE_SHA256_HEX_OF_MARKER_TOKEN';
+```
+
+Generate the random token with a cryptographically secure generator and keep the raw token only in the approved secret store. Compute its lowercase SHA-256 hex digest and place only that digest in the database comment. Never set this marker on a source or production application database. Missing, unreadable, or mismatched marker fails closed before restore. The digest label is defense-in-depth against accidental target selection; it is not proof of database identity or a substitute for an isolated disposable target and operator review.
+
+The manual GitHub Disaster Recovery Drill workflow is limited to `main` and uses the protected `production` GitHub Environment. Configure these environment secrets:
+
+- `DR_SOURCE_DATABASE_URL`
+- `DR_RESTORE_DATABASE_URL`
+- `DR_RESTORE_TARGET_MARKER`
+
+The production environment must retain its required-reviewer protection. Do not run a restore workflow until the restore target is separately provisioned, marked, and reviewed. The workflow does not upload the database dump as an Actions artifact and removes its ephemeral backup on completion.
 
 ## Validation
 
