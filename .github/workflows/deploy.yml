@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Immutable image tag (commit SHA from Release workflow)"
+        description: "Full 40-character release commit SHA used to resolve the GHCR tag; deployment uses the verified digest"
+        required: true
+        type: string
+      kubectl_version:
+        description: "Pinned kubectl vX.Y.Z compatible with the production API server (within one minor version)"
         required: true
         type: string
 
@@ -12,7 +16,6 @@ permissions:
   contents: read
   packages: read
   attestations: read
-  id-token: write
 
 concurrency:
   group: zomega-production
@@ -20,17 +23,120 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      KUBECTL_VERSION: ${{ inputs.kubectl_version }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: azure/setup-kubectl@v4
-      - uses: azure/setup-helm@v4
-      - name: Verify image provenance
+      - name: Validate deployment inputs before installing tools or loading credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "image_tag must be a full lowercase 40-character commit SHA" >&2
+            exit 1
+          }
+          [[ "$KUBECTL_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "kubectl_version must use the exact vX.Y.Z format" >&2
+            exit 1
+          }
+
+      - name: Checkout protected main history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require release source commit to be reachable from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git cat-file -e "${IMAGE_TAG}^{commit}"
+          git merge-base --is-ancestor "$IMAGE_TAG" FETCH_HEAD || {
+            echo "Release source commit is not reachable from current main" >&2
+            exit 1
+          }
+          echo "release_source_commit=verified"
+
+      - name: Install checksum-verified kubectl and Helm
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(uname -m)" == "x86_64" ]] || {
+            echo "This deployment toolchain is pinned for linux/amd64 runners" >&2
+            exit 1
+          }
+
+          kubectl_base="https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64"
+          kubectl_download="$RUNNER_TEMP/kubectl.download"
+          kubectl_checksum="$RUNNER_TEMP/kubectl.sha256"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            "$kubectl_base/kubectl" --output "$kubectl_download"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            "$kubectl_base/kubectl.sha256" --output "$kubectl_checksum"
+          kubectl_sha256="$(tr -d '[:space:]' < "$kubectl_checksum")"
+          [[ "$kubectl_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "Official kubectl checksum has an invalid format" >&2
+            exit 1
+          }
+          printf '%s  %s\n' "$kubectl_sha256" "$kubectl_download" | sha256sum --check --status
+          install -m 0755 "$kubectl_download" "$RUNNER_TEMP/kubectl"
+          rm -f -- "$kubectl_download" "$kubectl_checksum"
+
+          helm_version="v4.3.1"
+          helm_archive="helm-${helm_version}-linux-amd64.tar.gz"
+          helm_archive_path="$RUNNER_TEMP/$helm_archive"
+          helm_sha256="0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            "https://get.helm.sh/$helm_archive" --output "$helm_archive_path"
+          printf '%s  %s\n' "$helm_sha256" "$helm_archive_path" | sha256sum --check --status
+          tar -xzf "$helm_archive_path" -C "$RUNNER_TEMP" linux-amd64/helm
+          install -m 0755 "$RUNNER_TEMP/linux-amd64/helm" "$RUNNER_TEMP/helm"
+          rm -rf -- "$RUNNER_TEMP/linux-amd64" "$helm_archive_path"
+
+          printf '%s\n' "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/kubectl" version --client --output=yaml >/dev/null
+          helm_version_output="$("$RUNNER_TEMP/helm" version --short)"
+          [[ "$helm_version_output" == v4.3.1* ]] || {
+            echo "Unexpected Helm version: ${helm_version_output%%+*}" >&2
+            exit 1
+          }
+          echo "kubectl_binary=checksum_verified"
+          echo "helm_binary=checksum_verified"
+
+      - name: Resolve immutable image digest and verify provenance
+        id: image
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE: ghcr.io/${{ github.repository }}:${{ inputs.image_tag }}
-        run: gh attestation verify "oci://$IMAGE" --repo "${{ github.repository }}"
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+          tagged_image="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          manifest="$(docker buildx imagetools inspect "$tagged_image" --format '{{json .Manifest}}')"
+          image_digest="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$manifest")"
+          immutable_image="${IMAGE_REPOSITORY}@${image_digest}"
+
+          gh attestation verify "oci://${immutable_image}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+            --source-digest "$IMAGE_TAG" \
+            --deny-self-hosted-runners \
+            --format json > "$RUNNER_TEMP/zomega-image-attestation.json"
+
+          jq -e --arg digest "${image_digest#sha256:}" --arg subject "$IMAGE_REPOSITORY" \
+            'any(.[].verificationResult.statement.subject[]?; .name == $subject and .digest.sha256 == $digest)' \
+            "$RUNNER_TEMP/zomega-image-attestation.json" >/dev/null
+
+          printf 'image_digest=%s\n' "$image_digest" >> "$GITHUB_OUTPUT"
+          echo "verified_image_digest=$image_digest"
       - name: Configure kubeconfig
         shell: bash
         env:
@@ -38,11 +144,79 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$KUBECONFIG_B64"
-          mkdir -p "$HOME/.kube"
-          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+          kubeconfig="$RUNNER_TEMP/zomega-kubeconfig"
+          umask 077
+          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$kubeconfig"
+          chmod 600 "$kubeconfig"
+          printf 'KUBECONFIG=%s\n' "$kubeconfig" >> "$GITHUB_ENV"
           kubectl cluster-info
-      - name: Sync production runtime secret
+
+      - name: Verify production cluster identity before mutation
+        shell: bash
+        env:
+          EXPECTED_CONTEXT: ${{ vars.ZOMEGA_K8S_EXPECTED_CONTEXT }}
+          EXPECTED_CLUSTER_SERVER: ${{ vars.ZOMEGA_K8S_EXPECTED_CLUSTER_SERVER }}
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_CONTEXT" || {
+            echo "Missing production variable: ZOMEGA_K8S_EXPECTED_CONTEXT" >&2
+            exit 1
+          }
+          test -n "$EXPECTED_CLUSTER_SERVER" || {
+            echo "Missing production variable: ZOMEGA_K8S_EXPECTED_CLUSTER_SERVER" >&2
+            exit 1
+          }
+          [[ "$EXPECTED_CONTEXT" =~ ^[A-Za-z0-9._:/-]+$ ]] || {
+            echo "Invalid expected Kubernetes context format" >&2
+            exit 1
+          }
+          [[ "$EXPECTED_CLUSTER_SERVER" == https://* ]] || {
+            echo "Expected Kubernetes API server must use HTTPS" >&2
+            exit 1
+          }
+          actual_context="$(kubectl config current-context)"
+          actual_server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+          [[ "$actual_context" == "$EXPECTED_CONTEXT" ]] || {
+            echo "Kubernetes context does not match the protected production identity" >&2
+            exit 1
+          }
+          [[ "$actual_server" == "$EXPECTED_CLUSTER_SERVER" ]] || {
+            echo "Kubernetes API server does not match the protected production identity" >&2
+            exit 1
+          }
+          echo "production_cluster_identity=verified"
+
+      - name: Verify kubectl and API server version skew
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          import subprocess
+
+          def get_version(command, key):
+              payload = json.loads(subprocess.check_output(command, text=True))
+              value = payload[key]["gitVersion"]
+              match = re.match(r"^v?(\d+)\.(\d+)\.", value)
+              if not match:
+                  raise SystemExit(f"Cannot parse Kubernetes version: {value!r}")
+              return int(match.group(1)), int(match.group(2)), value
+
+          client_major, client_minor, client = get_version(
+              ["kubectl", "version", "--client", "-o", "json"], "clientVersion"
+          )
+          server_major, server_minor, server = get_version(
+              ["kubectl", "version", "-o", "json"], "serverVersion"
+          )
+          if client_major != server_major or abs(client_minor - server_minor) > 1:
+              raise SystemExit(
+                  f"Unsupported kubectl/API server skew: client={client}, server={server}"
+              )
+          print(f"kubernetes_version_skew=PASS client={client} server={server}")
+          PY
+
+      - name: Sync production runtime secret without putting secret values in argv
         shell: bash
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -65,32 +239,55 @@ jobs:
             ZOMEGA_PUBLIC_URL
           )
           for name in "${required[@]}"; do
-            test -n "${!name:-}" || { echo "Missing production runtime setting: $name" >&2; exit 1; }
+            value="${!name:-}"
+            test -n "$value" || { echo "Missing production runtime setting: $name" >&2; exit 1; }
+            [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || {
+              echo "Invalid newline in production runtime setting: $name" >&2
+              exit 1
+            }
           done
+
+          umask 077
+          secret_file="$(mktemp "$RUNNER_TEMP/zomega-runtime.XXXXXX")"
+          chmod 600 "$secret_file"
+          trap 'rm -f -- "$secret_file"' EXIT
+          {
+            printf 'ZOMEGA_ENV=%s\n' 'production'
+            printf 'ZOMEGA_PUBLIC_URL=%s\n' "$ZOMEGA_PUBLIC_URL"
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'REDIS_URL=%s\n' "$REDIS_URL"
+            printf 'ZOMEGA_API_KEY_PEPPER=%s\n' "$ZOMEGA_API_KEY_PEPPER"
+            printf 'ZOMEGA_ADMIN_TOKEN=%s\n' "$ZOMEGA_ADMIN_TOKEN"
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
+            printf 'STRIPE_SECRET_KEY=%s\n' "$STRIPE_SECRET_KEY"
+            printf 'STRIPE_WEBHOOK_SECRET=%s\n' "$STRIPE_WEBHOOK_SECRET"
+            printf 'STRIPE_PRICE_CREDITS_1000=%s\n' "$STRIPE_PRICE_CREDITS_1000"
+            printf 'STRIPE_PRICE_CREDITS_5000=%s\n' "$STRIPE_PRICE_CREDITS_5000"
+            printf 'STRIPE_PRICE_CREDITS_20000=%s\n' "$STRIPE_PRICE_CREDITS_20000"
+          } > "$secret_file"
+
           kubectl create namespace zomega --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n zomega create secret generic zomega-runtime \
-            --from-literal=ZOMEGA_ENV=production \
-            --from-literal=ZOMEGA_PUBLIC_URL="$ZOMEGA_PUBLIC_URL" \
-            --from-literal=DATABASE_URL="$DATABASE_URL" \
-            --from-literal=REDIS_URL="$REDIS_URL" \
-            --from-literal=ZOMEGA_API_KEY_PEPPER="$ZOMEGA_API_KEY_PEPPER" \
-            --from-literal=ZOMEGA_ADMIN_TOKEN="$ZOMEGA_ADMIN_TOKEN" \
-            --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
-            --from-literal=STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" \
-            --from-literal=STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" \
-            --from-literal=STRIPE_PRICE_CREDITS_1000="$STRIPE_PRICE_CREDITS_1000" \
-            --from-literal=STRIPE_PRICE_CREDITS_5000="$STRIPE_PRICE_CREDITS_5000" \
-            --from-literal=STRIPE_PRICE_CREDITS_20000="$STRIPE_PRICE_CREDITS_20000" \
+            --from-env-file="$secret_file" \
             --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy atomically
         shell: bash
+        env:
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
         run: |
           set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "Refusing deployment without a verified OCI digest" >&2
+            exit 1
+          }
           helm upgrade --install zomega deploy/helm/zomega \
             --namespace zomega \
             --create-namespace \
-            --set image.repository=ghcr.io/${{ github.repository }} \
-            --set image.tag=${{ inputs.image_tag }} \
+            --set-string image.repository="$IMAGE_REPOSITORY" \
+            --set-string image.digest="$IMAGE_DIGEST" \
+            --set-string image.tag="" \
             --atomic \
             --wait \
             --timeout 10m
@@ -99,8 +296,20 @@ jobs:
       - name: External readiness verification
         env:
           ZOMEGA_HEALTH_URL: ${{ vars.ZOMEGA_HEALTH_URL || vars.OMEGA_HEALTH_URL || vars.zomega_HEALTH_URL }}
+        shell: bash
         run: |
           set -euo pipefail
           test -n "$ZOMEGA_HEALTH_URL"
           curl --fail --show-error --silent --retry 8 --retry-all-errors \
+            --connect-timeout 5 --max-time 20 \
             "${ZOMEGA_HEALTH_URL%/}/health/ready"
+
+      - name: Clean up deployment credentials
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -n "${KUBECONFIG:-}" ]]; then
+            rm -f -- "$KUBECONFIG"
+          fi
+          rm -f -- "$RUNNER_TEMP/zomega-kubeconfig"
