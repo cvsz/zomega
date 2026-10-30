@@ -10,35 +10,39 @@
 
 The backup directory and evidence files are owner-only.
 
+## Direct restore containment
+
+The unguarded direct restore path is disabled:
+
+- `restore.sh` exits with status 64 and never invokes `pg_restore`.
+- `make restore` exits with status 64 and does not call `restore.sh`.
+
+Do not restore directly through a shell script or Make target. Production recovery requires a
+separately reviewed, environment-protected operator workflow with explicit authorization,
+source/target cluster-identity validation, a dedicated restore target, backup integrity checks,
+rollback instructions, and retained evidence. That production recovery workflow is not verified
+by this repository change.
+
 ## Restore verification
 
 `restore-verify.sh` is intentionally destructive to its restore target. Use only a dedicated
-disposable restore database.
+disposable PostgreSQL cluster/database. It is a validation drill, not a production recovery path.
 
-Verification checks:
+The current Main script checks the backup checksum, schema head, wallet balances, and reservation
+consistency. URL inequality alone does not prove separate PostgreSQL cluster identity. Do not use
+the current Main verification script with production credentials or assume it proves a safe target.
 
-- backup checksum
-- Alembic schema head `0008`
-- no negative wallet balances
-- open reservation totals match wallet reserved balances
-
-When `ZOMEGA_SOURCE_DATABASE_URL` is supplied, the script refuses an identical restore URL.
+The separate hardening candidate in PR #27 adds cluster-identity and target-marker checks. Those
+controls are not effective on Main until that PR is independently reviewed, all exact-head checks
+pass, and it is merged through the repository's protected release process.
 
 ## GitHub DR workflow
 
-The manual Disaster Recovery Drill workflow:
+The manual Disaster Recovery Drill workflow must be restricted to the protected `production`
+environment, require explicit operator confirmation and independent reviewers, use separate
+source and disposable restore credentials, and avoid uploading database dumps as workflow
+artifacts.
 
-- requires the literal confirmation `DRILL`
-- uses the protected `production` GitHub Environment
-- requires separate source and restore DB secrets
-- creates the dump only on the ephemeral runner
-- does not upload the database dump as an Actions artifact
-- deletes the local backup in an `always()` cleanup step
-
-Required secrets:
-
-- `DR_SOURCE_DATABASE_URL`
-- `DR_RESTORE_DATABASE_URL`
-
-A real production completion record requires executing this workflow against production backup
-credentials and retaining the workflow evidence.
+A production completion record requires an operator-approved drill, measured RTO/RPO, verified
+restore/failover outcome, and evidence retention. Offline tests and disposable CI drills are not
+production DR evidence.
