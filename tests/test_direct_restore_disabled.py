@@ -91,9 +91,9 @@ class DirectRestoreDisabledTests(unittest.TestCase):
             marker = temp / "pg-restore-called"
             pg_restore = bin_dir / "pg_restore"
             pg_restore.write_text(
-                "#!/usr/bin/env bash\\n"
-                "set -euo pipefail\\n"
-                'printf called > "$PG_RESTORE_MARKER"\\n',
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                'printf called > "$PG_RESTORE_MARKER"\n',
                 encoding="utf-8",
             )
             pg_restore.chmod(0o755)
@@ -130,9 +130,9 @@ class DirectRestoreDisabledTests(unittest.TestCase):
             marker = temp / "pg-restore-called"
             pg_restore = bin_dir / "pg_restore"
             pg_restore.write_text(
-                "#!/usr/bin/env bash\\n"
-                "set -euo pipefail\\n"
-                'printf called > "$PG_RESTORE_MARKER"\\n',
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                'printf called > "$PG_RESTORE_MARKER"\n',
                 encoding="utf-8",
             )
             pg_restore.chmod(0o755)
@@ -163,7 +163,7 @@ class DirectRestoreDisabledTests(unittest.TestCase):
 
     def test_make_restore_verify_target_fails_closed_without_calling_restore_script(self):
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-        match = re.search(r"(?ms)^restore-verify:\\n(?P<body>(?:^[ \\t].*\\n|^\\n)*)", makefile)
+        match = re.search(r"(?ms)^restore-verify:\n(?P<body>(?:^[ \t].*\n|^\n)*)", makefile)
         self.assertIsNotNone(match, "Makefile must keep an explicit restore-verify target")
         body = match.group("body")
         self.assertIn("Restore verification is disabled", body)
