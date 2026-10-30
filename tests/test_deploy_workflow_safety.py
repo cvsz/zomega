@@ -45,15 +45,34 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         )
         self.assertEqual(self.workflow.count("${{ inputs.image_tag }}"), 1)
         self.assertIn('git merge-base --is-ancestor "$IMAGE_TAG" FETCH_HEAD', self.workflow)
-        self.assertNotIn("--set image.tag=${{ inputs.image_tag }}", self.workflow)
-        self.assertIn('--set-string image.tag="$IMAGE_TAG"', self.workflow)
+        self.assertNotIn('--set-string image.tag="$IMAGE_TAG"', self.workflow)
+        self.assertIn('--set-string image.digest="$IMAGE_DIGEST"', self.workflow)
 
     def test_attestation_is_bound_to_release_workflow_and_source_commit(self):
         self.assertIn('--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"', self.workflow)
         self.assertIn('--source-digest "$IMAGE_TAG"', self.workflow)
         self.assertIn("--deny-self-hosted-runners", self.workflow)
-        self.assertIn('gh attestation verify "oci://$image"', self.workflow)
+        self.assertIn('docker buildx imagetools inspect "$tagged_image" --format', self.workflow)
+        self.assertIn('gh attestation verify "oci://${immutable_image}"', self.workflow)
+        self.assertIn("--format json", self.workflow)
+        self.assertIn(".digest.sha256 == $digest", self.workflow)
 
+    def test_attested_manifest_digest_is_the_deployed_image_reference(self):
+        self.assertIn('IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}', self.workflow)
+        self.assertIn('[[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]', self.workflow)
+        self.assertIn('--set-string image.digest="$IMAGE_DIGEST"', self.workflow)
+        self.assertIn('--set-string image.tag=""', self.workflow)
+        self.assertNotIn('--set-string image.tag="$IMAGE_TAG"', self.workflow)
+
+        template = (ROOT / "deploy" / "helm" / "zomega" / "templates" / "deployment.yaml").read_text(encoding="utf-8")
+        digest_image = 'image: "{{ .Values.image.repository }}{{ if .Values.image.digest }}@{{ .Values.image.digest }}{{ else }}:{{ .Values.image.tag }}{{ end }}"'
+        self.assertEqual(template.count(digest_image), 2)
+
+    def test_digest_resolution_and_verification_precede_kubeconfig_loading(self):
+        self.assertLess(
+            self.workflow.index("Resolve immutable image digest and verify provenance"),
+            self.workflow.index("Configure kubeconfig"),
+        )
     def test_production_cluster_identity_precedes_mutation(self):
         self.assertIn("EXPECTED_CONTEXT: ${{ vars.ZOMEGA_K8S_EXPECTED_CONTEXT }}", self.workflow)
         self.assertIn(
