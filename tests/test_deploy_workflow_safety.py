@@ -48,6 +48,10 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertNotIn('--set-string image.tag="$IMAGE_TAG"', self.workflow)
         self.assertIn('--set-string image.digest="$IMAGE_DIGEST"', self.workflow)
 
+    def test_operator_input_is_a_lookup_tag_not_deployment_identity(self):
+        self.assertIn("deployment uses the verified digest", self.workflow)
+        self.assertNotIn("used as the immutable image tag", self.workflow)
+
     def test_attestation_is_bound_to_release_workflow_and_source_commit(self):
         self.assertIn('--signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"', self.workflow)
         self.assertIn('--source-digest "$IMAGE_TAG"', self.workflow)
