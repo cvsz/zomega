@@ -136,6 +136,40 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
             self.workflow.index("Configure kubeconfig"),
         )
 
+    def test_every_external_workflow_action_is_pinned_to_a_full_commit_sha(self):
+        workflow_dir = ROOT / ".github" / "workflows"
+        workflow_paths = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
+        self.assertTrue(workflow_paths, "No GitHub Actions workflow files found")
+
+        references = []
+        for workflow_path in workflow_paths:
+            workflow_text = workflow_path.read_text(encoding="utf-8")
+            references.extend(
+                (workflow_path.relative_to(ROOT), reference)
+                for reference in re.findall(
+                    r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
+                    workflow_text,
+                )
+            )
+
+        self.assertTrue(references, "No external action references found")
+        for workflow_path, reference in references:
+            with self.subTest(workflow=str(workflow_path), reference=reference):
+                self.assertRegex(reference, r"^[^@]+@[0-9a-f]{40}$")
+
+    def test_security_scanner_and_sbom_actions_are_pinned(self):
+        security_workflow = (
+            ROOT / ".github" / "workflows" / "security.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25",
+            security_workflow,
+        )
+        self.assertIn(
+            "anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c",
+            security_workflow,
+        )
+
     def test_runtime_secrets_are_not_passed_as_command_line_values(self):
         self.assertNotIn("--from-literal=", self.workflow)
         self.assertIn('--from-env-file="$secret_file"', self.workflow)
