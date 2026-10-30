@@ -46,7 +46,6 @@ class DirectRestoreDisabledTests(unittest.TestCase):
             self.assertIn("Direct database restore is disabled", result.stderr)
             self.assertFalse(marker.exists(), "restore.sh must never invoke pg_restore")
 
-
     def test_make_restore_target_exits_before_any_pg_restore_command(self):
         make = shutil.which("make")
         if make is None:
@@ -59,9 +58,9 @@ class DirectRestoreDisabledTests(unittest.TestCase):
             marker = temp / "pg-restore-called"
             pg_restore = bin_dir / "pg_restore"
             pg_restore.write_text(
-                "#!/usr/bin/env bash\\n"
-                "set -euo pipefail\\n"
-                'printf called > "$PG_RESTORE_MARKER"\\n',
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                'printf called > "$PG_RESTORE_MARKER"\n',
                 encoding="utf-8",
             )
             pg_restore.chmod(0o755)
