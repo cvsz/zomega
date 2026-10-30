@@ -39,7 +39,7 @@ help:
 	@echo "  make compose-up        - Start services in background (docker compose up -d)"
 	@echo "  make compose-down      - Stop and tear down docker compose services"
 	@echo "  make compose-logs      - Follow docker compose logs"
-	@echo "  make compose-ps        - View running services"
+	@echo "  make compose-ps        - View running compose services"
 	@echo ""
 	@echo "Operations & Disaster Recovery:"
 	@echo "  make backup            - Execute database backup (./backup.sh)"
