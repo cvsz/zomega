@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-: "${DATABASE_URL:?DATABASE_URL required}"
-SRC="${1:?Usage: restore.sh backups/file.dump}"
-pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" "$SRC"
-alembic upgrade head
-python3 -m zomega db-check
+
+printf '%s\n' \
+  'Direct database restore is disabled. This entry point never invokes pg_restore.' \
+  'Use the separately reviewed disaster-recovery procedure and a verified disposable target.' \
+  'See docs/DISASTER_RECOVERY.md. Do not use the disposable verification drill for production recovery.' >&2
+exit 64

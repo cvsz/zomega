@@ -43,8 +43,8 @@ help:
 	@echo ""
 	@echo "Operations & Disaster Recovery:"
 	@echo "  make backup            - Execute database backup (./backup.sh)"
-	@echo "  make restore           - Restore database (usage: make restore src=backups/file.dump)"
-	@echo "  make restore-verify    - Run automated restore verification drill (./restore-verify.sh)"
+	@echo "  make restore           - DISABLED: direct restore fails closed"
+	@echo "  make restore-verify    - Run destructive drill against a disposable target only"
 	@echo "  make operator-apply    - Apply production GitHub governance/environment controls"
 	@echo "  make operator-verify   - Verify production operator completion gates"
 	@echo ""
@@ -124,8 +124,8 @@ backup:
 	./backup.sh
 
 restore:
-	@if [ -z "$(src)" ]; then echo "Error: specify dump file with src=backups/..."; exit 1; fi
-	./restore.sh "$(src)"
+	@printf '%s\n' 'Direct database restore is disabled. See docs/DISASTER_RECOVERY.md.' >&2
+	@exit 64
 
 restore-verify:
 	./restore-verify.sh
