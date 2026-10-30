@@ -59,7 +59,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertIn('docker buildx imagetools inspect "$tagged_image" --format', self.workflow)
         self.assertIn('gh attestation verify "oci://${immutable_image}"', self.workflow)
         self.assertIn("--format json", self.workflow)
-        self.assertIn(".digest.sha256 == $digest", self.workflow)
+        self.assertIn(".name == $subject and .digest.sha256 == $digest", self.workflow)
 
     def test_attested_manifest_digest_is_the_deployed_image_reference(self):
         self.assertIn('IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}', self.workflow)
