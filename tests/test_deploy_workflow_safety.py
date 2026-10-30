@@ -15,7 +15,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
 
     def test_deployment_is_manual_and_main_only(self):
         self.assertIn("workflow_dispatch:", self.workflow)
-        self.assertNotRegex(self.workflow, r"(?m)^\s+(?:push|pull_request):")
+        self.assertNotRegex(self.workflow, r"(?m)^\\s+(?:push|pull_request):")
         self.assertIn("if: github.ref == 'refs/heads/main'", self.workflow)
         self.assertIn("environment: production", self.workflow)
 
@@ -41,7 +41,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_release_signer_workflow_actions_are_pinned_to_verified_full_shas(self):
         release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
         references = re.findall(
-            r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)",
+            r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
             release_workflow,
         )
         self.assertEqual(
@@ -61,7 +61,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_dispatch_inputs_are_validated_before_credentials(self):
         self.assertIn('[[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] ||', self.workflow)
         self.assertIn(
-            r'[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||',
+            r'[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]] ||',
             self.workflow,
         )
         self.assertEqual(self.workflow.count("${{ inputs.image_tag }}"), 1)
@@ -98,6 +98,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
             self.workflow.index("Resolve immutable image digest and verify provenance"),
             self.workflow.index("Configure kubeconfig"),
         )
+
     def test_production_cluster_identity_precedes_mutation(self):
         self.assertIn("EXPECTED_CONTEXT: ${{ vars.ZOMEGA_K8S_EXPECTED_CONTEXT }}", self.workflow)
         self.assertIn(
@@ -128,6 +129,19 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertIn("Clean up deployment credentials", self.workflow)
         self.assertNotIn("id-token: write", self.workflow)
 
+    def test_production_workflows_require_independent_codeowner(self):
+        codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+        for path in (
+            "/.github/workflows/deploy.yml",
+            "/.github/workflows/release.yml",
+        ):
+            matching = [
+                line.split("#", 1)[0].split()
+                for line in codeowners.splitlines()
+                if line.split("#", 1)[0].split()[:1] == [path]
+            ]
+            self.assertEqual(len(matching), 1, f"Expected one CODEOWNERS rule for {path}")
+            self.assertIn("@policedbc", matching[0][1:])
 
 if __name__ == "__main__":
     unittest.main()
