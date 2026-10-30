@@ -84,14 +84,16 @@ requires operator reconciliation.
 
 ## Disaster recovery
 
-Use only a dedicated restore database.
+**Restore and restore verification are disabled.** Do not use any direct shell or Makefile restore entry point. Current Main intentionally fails closed before invoking `pg_restore` or connecting to a source/target database:
 
-```bash
-ZOMEGA_SOURCE_DATABASE_URL=... \
-ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
-ZOMEGA_RESTORE_VERIFY_DATABASE_URL=... \
-./restore-verify.sh
-```
+- `restore.sh`
+- `make restore`
+- `restore-verify.sh`
+- `make restore-verify`
+- `.github/workflows/dr-verify.yml`
 
-The script refuses an identical source/restore URL and verifies checksum, Alembic head, non-negative
-wallets, and reservation totals.
+No supported production restore command is available from this repository revision. Do not set or pass production database credentials to these disabled entry points.
+
+Production recovery remains blocked until a separately reviewed, environment-protected operator workflow has explicit authorization, source/target PostgreSQL cluster identity verification (not URL inequality alone), a dedicated isolated restore target, backup checksum/schema validation, a rollback plan, and retained evidence. Production Environment reviewers and the restore/failover procedure must be independently verified before any re-enablement.
+
+See `docs/DISASTER_RECOVERY.md` for the current containment boundary and acceptance gates. A disposable CI drill is not production DR evidence.
