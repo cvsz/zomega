@@ -23,25 +23,29 @@ source/target cluster-identity validation, a dedicated restore target, backup in
 rollback instructions, and retained evidence. That production recovery workflow is not verified
 by this repository change.
 
-## Restore verification
+## Restore verification containment
 
-`restore-verify.sh` is intentionally destructive to its restore target. Use only a dedicated
-disposable PostgreSQL cluster/database. It is a validation drill, not a production recovery path.
+Restore verification is disabled until the target-identity guard and production Environment
+protections are independently verified:
 
-The current Main script checks the backup checksum, schema head, wallet balances, and reservation
-consistency. URL inequality alone does not prove separate PostgreSQL cluster identity. Do not use
-the current Main verification script with production credentials or assume it proves a safe target.
+- `restore-verify.sh` exits with status 64 before invoking `pg_restore`.
+- `make restore-verify` exits with status 64 without calling the script.
+- The manual DR workflow exits before injecting database credentials or connecting to source/target databases.
 
-The separate hardening candidate in PR #27 adds cluster-identity and target-marker checks. Those
-controls are not effective on Main until that PR is independently reviewed, all exact-head checks
-pass, and it is merged through the repository's protected release process.
+The previous Main implementation only compared database URL strings. Different URLs can still
+identify the same PostgreSQL cluster, so URL inequality is not a safe destructive-restore boundary.
+Do not dispatch the DR workflow or run a restore script with production credentials.
+
+PR #27 contains a reviewed target-identity hardening candidate, but it must be reconciled against
+current Main, re-run through exact-head CI, and independently reviewed again. Re-enablement also
+requires verified production Environment required reviewers, a dedicated disposable target, backup
+integrity, rollback instructions, and retained evidence.
 
 ## GitHub DR workflow
 
-The manual Disaster Recovery Drill workflow must be restricted to the protected `production`
-environment, require explicit operator confirmation and independent reviewers, use separate
-source and disposable restore credentials, and avoid uploading database dumps as workflow
-artifacts.
+The current manual Disaster Recovery Drill workflow is intentionally blocked. It must not receive
+database secrets or connect to any database until the above controls are proven by API read-back
+and a fresh independent review.
 
 A production completion record requires an operator-approved drill, measured RTO/RPO, verified
 restore/failover outcome, and evidence retention. Offline tests and disposable CI drills are not

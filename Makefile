@@ -128,7 +128,8 @@ restore:
 	@exit 64
 
 restore-verify:
-	./restore-verify.sh
+	@printf '%s\n' 'Restore verification is disabled until target identity and production Environment protections are verified. See docs/DISASTER_RECOVERY.md.' >&2
+	@exit 64
 
 operator-apply:
 	./scripts/production-operator-complete.sh

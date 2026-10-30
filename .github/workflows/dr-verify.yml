@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type DRILL to confirm use of the dedicated restore database"
+        description: "DR verification is disabled until target identity and Environment protection are verified"
         required: true
         type: string
 
@@ -17,35 +17,11 @@ concurrency:
 
 jobs:
   restore-verification:
-    environment: production
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      ZOMEGA_SOURCE_DATABASE_URL: ${{ secrets.DR_SOURCE_DATABASE_URL }}
-      ZOMEGA_RESTORE_VERIFY_DATABASE_URL: ${{ secrets.DR_RESTORE_DATABASE_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - name: Require explicit drill confirmation
-        run: test "${{ inputs.confirmation }}" = "DRILL"
-      - name: Validate dedicated database configuration
+      - name: Block unverified restore verification
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$DATABASE_URL"
-          test -n "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
-          test "$DATABASE_URL" != "$ZOMEGA_RESTORE_VERIFY_DATABASE_URL"
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-      - name: Create ephemeral backup evidence
-        run: ./backup.sh
-      - name: Restore and verify
-        shell: bash
-        run: |
-          set -euo pipefail
-          export ZOMEGA_BACKUP_FILE="$(ls -1t backups/zomega-*.dump | head -n1)"
-          ./restore-verify.sh
-      - name: Remove ephemeral backup
-        if: always()
-        run: rm -rf backups
+          echo "Disaster recovery restore verification is disabled pending independent target-cluster identity and production Environment protection evidence." >&2
+          exit 64

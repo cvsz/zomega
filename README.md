@@ -140,18 +140,16 @@ Direct database restore is disabled: `make restore` and `restore.sh` intentional
 never invoke `pg_restore`. This prevents the unguarded direct path from bypassing dedicated DR
 controls.
 
-Restore verification is a destructive drill against a dedicated disposable PostgreSQL target only:
+Restore verification is currently disabled:
 
-```bash
-ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
-ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
-make restore-verify
-```
+- `restore-verify.sh` exits with status 64 before invoking `pg_restore`.
+- `make restore-verify` exits with status 64 without calling the script.
+- The manual Disaster Recovery Drill workflow fails closed before loading database credentials or connecting to a database.
 
-Do not use the disposable verification drill for production recovery. The current Main restore
-verification script does not independently prove cluster identity. Production recovery remains
-blocked until a separately reviewed operator workflow verifies source/target cluster identity,
-target authorization, backup integrity, independent approval, rollback, and retained evidence.
+Do not run restore verification or production recovery until a separately reviewed operator workflow
+verifies source/target cluster identity, target authorization, protected production Environment
+reviewers, backup integrity, independent approval, rollback, and retained evidence. The reviewed
+candidate in PR #27 must be reconciled against current Main and revalidated before re-enablement.
 See `docs/DISASTER_RECOVERY.md`.
 
 ## Validation
