@@ -92,7 +92,7 @@ jobs:
           helm_archive_path="$RUNNER_TEMP/$helm_archive"
           helm_sha256="0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b"
           curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
-            "https://get.helm.sh/$helm_archive" --output "$helm_archive_path"
+            "https://get.helm.sh/${helm_archive}" --output "$helm_archive_path"
           printf '%s  %s\n' "$helm_sha256" "$helm_archive_path" | sha256sum --check --status
           tar -xzf "$helm_archive_path" -C "$RUNNER_TEMP" linux-amd64/helm
           install -m 0755 "$RUNNER_TEMP/linux-amd64/helm" "$RUNNER_TEMP/helm"
