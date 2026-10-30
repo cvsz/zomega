@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "deploy.yml"
+RELEASE_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "release.yml"
 
 
 class DeployWorkflowSafetyTests(unittest.TestCase):
@@ -36,6 +37,27 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
         self.assertIn(
             "Azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310", uses
         )
+
+    def test_release_signer_workflow_actions_are_pinned_to_verified_full_shas(self):
+        release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
+        references = [
+            line.strip().split("#", 1)[0].removeprefix("uses:").strip()
+            for line in release_workflow.splitlines()
+            if line.strip().startswith("uses:")
+        ]
+        self.assertEqual(
+            [
+                "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+                "docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9",
+                "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8",
+                "actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
+            ],
+            references,
+        )
+        for reference in references:
+            self.assertRegex(reference, r"^[^@]+@[0-9a-f]{40}$")
+        self.assertIn("persist-credentials: false", release_workflow)
 
     def test_dispatch_inputs_are_validated_before_credentials(self):
         self.assertIn('[[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] ||', self.workflow)
