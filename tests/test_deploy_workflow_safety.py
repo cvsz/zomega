@@ -15,7 +15,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
 
     def test_deployment_is_manual_and_main_only(self):
         self.assertIn("workflow_dispatch:", self.workflow)
-        self.assertNotRegex(self.workflow, r"(?m)^\\s+(?:push|pull_request):")
+        self.assertNotRegex(self.workflow, r"(?m)^\s+(?:push|pull_request):")
         self.assertIn("if: github.ref == 'refs/heads/main'", self.workflow)
         self.assertIn("environment: production", self.workflow)
 
@@ -41,7 +41,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_release_signer_workflow_actions_are_pinned_to_verified_full_shas(self):
         release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
         references = re.findall(
-            r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
+            r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)",
             release_workflow,
         )
         self.assertEqual(
@@ -61,7 +61,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_dispatch_inputs_are_validated_before_credentials(self):
         self.assertIn('[[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] ||', self.workflow)
         self.assertIn(
-            r'[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]] ||',
+            r'[[ "$KUBECTL_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||',
             self.workflow,
         )
         self.assertEqual(self.workflow.count("${{ inputs.image_tag }}"), 1)
