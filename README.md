@@ -136,18 +136,21 @@ make backup
 
 The backup emits a custom-format dump, SHA-256 checksum, and JSON evidence manifest.
 
-Restore verification requires a dedicated disposable restore database:
+Direct database restore is disabled: `make restore` and `restore.sh` intentionally fail closed and
+never invoke `pg_restore`. This prevents the unguarded direct path from bypassing dedicated DR
+controls.
 
-```bash
-ZOMEGA_BACKUP_FILE=backups/zomega-....dump \
-ZOMEGA_RESTORE_VERIFY_DATABASE_URL=postgresql://.../zomega_restore \
-make restore-verify
-```
+Restore verification is currently disabled:
 
-The script refuses to restore into `ZOMEGA_SOURCE_DATABASE_URL` when supplied.
+- `restore-verify.sh` exits with status 64 before invoking `pg_restore`.
+- `make restore-verify` exits with status 64 without calling the script.
+- The manual Disaster Recovery Drill workflow fails closed before loading database credentials or connecting to a database.
 
-GitHub also includes a gated manual `Disaster Recovery Drill` workflow. Production must configure
-`DR_SOURCE_DATABASE_URL` and a separate `DR_RESTORE_DATABASE_URL`.
+Do not run restore verification or production recovery until a separately reviewed operator workflow
+verifies source/target cluster identity, target authorization, protected production Environment
+reviewers, backup integrity, independent approval, rollback, and retained evidence. The reviewed
+candidate in PR #27 must be reconciled against current Main and revalidated before re-enablement.
+See `docs/DISASTER_RECOVERY.md`.
 
 ## Validation
 

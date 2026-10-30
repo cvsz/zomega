@@ -11,5 +11,9 @@
 /rollback.sh @cvsz @policedbc
 /.github/workflows/dr-verify.yml @cvsz @policedbc
 /.github/CODEOWNERS @cvsz @policedbc
+
+/Makefile @cvsz @policedbc
+/docs/RUNBOOK.md @cvsz @policedbc
+/tests/test_direct_restore_disabled.py @cvsz @policedbc
 /docs/DISASTER_RECOVERY.md @cvsz @policedbc
 /tests/test_restore_verify_safety.py @cvsz @policedbc
