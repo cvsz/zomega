@@ -147,7 +147,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
             references.extend(
                 (workflow_path.relative_to(ROOT), reference)
                 for reference in re.findall(
-                    r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
+                    r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)",
                     workflow_text,
                 )
             )
