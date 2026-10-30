@@ -82,19 +82,35 @@ jobs:
             exit 1
           }
 
-      - name: Verify image provenance
+      - name: Resolve immutable image digest and verify provenance
+        id: image
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          image="ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
-          gh attestation verify "oci://$image" \
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+          tagged_image="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          manifest="$(docker buildx imagetools inspect "$tagged_image" --format '{{json .Manifest}}')"
+          image_digest="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' <<<"$manifest")"
+          immutable_image="${IMAGE_REPOSITORY}@${image_digest}"
+
+          gh attestation verify "oci://${immutable_image}" \
             --repo "$GITHUB_REPOSITORY" \
             --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
             --source-digest "$IMAGE_TAG" \
-            --deny-self-hosted-runners
+            --deny-self-hosted-runners \
+            --format json > "$RUNNER_TEMP/zomega-image-attestation.json"
 
+          jq -e --arg digest "${image_digest#sha256:}" \
+            'any(.[].verificationResult.statement.subject[]?; .digest.sha256 == $digest)' \
+            "$RUNNER_TEMP/zomega-image-attestation.json" >/dev/null
+
+          printf 'image_digest=%s\n' "$image_digest" >> "$GITHUB_OUTPUT"
+          echo "verified_image_digest=$image_digest"
       - name: Configure kubeconfig
         shell: bash
         env:
@@ -233,19 +249,24 @@ jobs:
         shell: bash
         env:
           IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+          IMAGE_DIGEST: ${{ steps.image.outputs.image_digest }}
         run: |
           set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "Refusing deployment without a verified OCI digest" >&2
+            exit 1
+          }
           helm upgrade --install zomega deploy/helm/zomega \
             --namespace zomega \
             --create-namespace \
             --set-string image.repository="$IMAGE_REPOSITORY" \
-            --set-string image.tag="$IMAGE_TAG" \
+            --set-string image.digest="$IMAGE_DIGEST" \
+            --set-string image.tag="" \
             --atomic \
             --wait \
             --timeout 10m
           kubectl -n zomega rollout status deployment/zomega-api --timeout=5m
           kubectl -n zomega rollout status deployment/zomega-worker --timeout=5m
-
       - name: External readiness verification
         env:
           ZOMEGA_HEALTH_URL: ${{ vars.ZOMEGA_HEALTH_URL || vars.OMEGA_HEALTH_URL || vars.zomega_HEALTH_URL }}
