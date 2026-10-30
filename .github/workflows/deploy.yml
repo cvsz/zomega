@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Full 40-character commit SHA used as the immutable image tag"
+        description: "Full 40-character release commit SHA used to resolve the GHCR tag; deployment uses the verified digest"
         required: true
         type: string
       kubectl_version:
