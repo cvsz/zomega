@@ -44,7 +44,7 @@ help:
 	@echo "Operations & Disaster Recovery:"
 	@echo "  make backup            - Execute database backup (./backup.sh)"
 	@echo "  make restore           - DISABLED: direct restore fails closed"
-	@echo "  make restore-verify    - Run destructive drill against a disposable target only"
+	@echo "  make restore-verify    - DISABLED: restore verification blocked pending operator controls"
 	@echo "  make operator-apply    - Apply production GitHub governance/environment controls"
 	@echo "  make operator-verify   - Verify production operator completion gates"
 	@echo ""

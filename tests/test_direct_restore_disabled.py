@@ -179,6 +179,18 @@ class DirectRestoreDisabledTests(unittest.TestCase):
         self.assertIn("exit 64", body)
         self.assertNotIn("./restore.sh", body)
 
+    def test_runbook_does_not_advertise_disabled_restore_command_as_runnable(self):
+        runbook = (ROOT / "docs" / "RUNBOOK.md").read_text(encoding="utf-8")
+        self.assertIn("restore and restore verification are disabled", runbook.lower())
+        self.assertNotIn("./restore-verify.sh", runbook)
+        self.assertNotIn("ZOMEGA_RESTORE_VERIFY_DATABASE_URL=...", runbook)
+        self.assertIn("docs/DISASTER_RECOVERY.md", runbook)
+
+    def test_make_help_marks_restore_verification_disabled(self):
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("make restore-verify    - DISABLED:", makefile)
+        self.assertNotIn("Run destructive drill against a disposable target only", makefile)
+
 
 if __name__ == "__main__":
     unittest.main()
