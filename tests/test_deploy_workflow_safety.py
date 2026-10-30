@@ -40,11 +40,10 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
 
     def test_release_signer_workflow_actions_are_pinned_to_verified_full_shas(self):
         release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
-        references = [
-            line.strip().split("#", 1)[0].removeprefix("uses:").strip()
-            for line in release_workflow.splitlines()
-            if line.strip().startswith("uses:")
-        ]
+        references = re.findall(
+            r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
+            release_workflow,
+        )
         self.assertEqual(
             [
                 "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
