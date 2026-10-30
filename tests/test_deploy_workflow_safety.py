@@ -41,7 +41,7 @@ class DeployWorkflowSafetyTests(unittest.TestCase):
     def test_release_signer_workflow_actions_are_pinned_to_verified_full_shas(self):
         release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
         references = re.findall(
-            r"(?m)^\\s*(?:-\\s*)?uses:\\s*([^\\s#]+)",
+            r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)",
             release_workflow,
         )
         self.assertEqual(
