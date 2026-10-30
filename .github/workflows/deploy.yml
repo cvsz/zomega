@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: azure/setup-kubectl@v4
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
       - name: Verify image provenance
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
