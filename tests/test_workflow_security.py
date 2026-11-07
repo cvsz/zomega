@@ -28,7 +28,7 @@ permissions:
 jobs:
   test:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 """
@@ -61,6 +61,41 @@ jobs:
                 self.assertFalse(str(step.get("run", "")).strip().startswith(("./", "python ", "bash ")))
         self.assertEqual(checkout_count, 1)
 
+    def test_mutable_action_tag_is_rejected(self):
+        workflow = self.read_only_checkout().replace(
+            "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "actions/checkout@v7",
+        )
+        findings = self.scan(workflow)
+        self.assertTrue(any("must use a full 40-character commit SHA" in item for item in findings))
+
+    def test_full_commit_sha_action_ref_is_accepted(self):
+        self.assertEqual(self.scan(self.read_only_checkout()), [])
+
+    def test_mutable_reusable_workflow_ref_is_rejected(self):
+        findings = self.scan("""name: Reuse
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: cvsz/ztemplate/.github/workflows/ci.yml@main
+""")
+        self.assertTrue(any("must use a full 40-character commit SHA" in item for item in findings))
+
+    def test_docker_action_tag_is_rejected_without_digest(self):
+        findings = self.scan("""name: Docker action
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    steps:
+      - uses: docker://ghcr.io/example/action:v1
+""")
+        self.assertTrue(any("must pin docker actions by sha256 digest" in item for item in findings))
 
     def test_pull_request_secrets_are_rejected(self):
         findings = self.scan("""name: Unsafe
@@ -124,7 +159,7 @@ permissions:
 jobs:
   analyze:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 """, filename="codeql.yml")
@@ -137,7 +172,7 @@ permissions:
 jobs:
   test:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 """)
@@ -155,7 +190,7 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 """)
@@ -170,10 +205,10 @@ permissions:
 jobs:
   test:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 """)
         self.assertTrue(
             any("checkout in job 'test' step 2" in item for item in findings)
@@ -201,7 +236,7 @@ permissions:
 jobs:
   review:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.inputs.sha }}
           persist-credentials: false
@@ -220,7 +255,7 @@ permissions:
 jobs:
   inspect:
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/merge', github.event.inputs.pr_number) }}
           persist-credentials: false
