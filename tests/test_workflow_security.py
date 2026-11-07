@@ -4,7 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_workflow_security import scan_workflows
+import yaml
+
+from scripts.check_workflow_security import UniqueKeyLoader, scan_workflows
 
 
 class WorkflowSecurityTests(unittest.TestCase):
@@ -33,6 +35,32 @@ jobs:
 
     def test_read_only_pull_request_checkout_is_allowed(self):
         self.assertEqual(self.scan(self.read_only_checkout()), [])
+
+    def test_pr_hygiene_workflow_is_read_only_and_never_executes_candidate_code(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow_path = root / ".github" / "workflows" / "auto-fix-open-prs.yml"
+        source = workflow_path.read_text(encoding="utf-8")
+        document = yaml.load(source, Loader=UniqueKeyLoader)
+
+        self.assertEqual(set(document["on"]), {"schedule", "workflow_dispatch"})
+        self.assertEqual(document["permissions"], {"contents": "read"})
+        for forbidden in (
+            "POLIEDBC_PAT", "GPG_SIGNING_KEY", "GPG_PASSPHRASE",
+            "secrets.", "git push", "git commit", "git add",
+            "gh pr review", "gh api",
+        ):
+            self.assertNotIn(forbidden, source)
+
+        checkout_count = 0
+        for job in document["jobs"].values():
+            for step in job.get("steps", []):
+                uses = step.get("uses", "")
+                if isinstance(uses, str) and uses.startswith("actions/checkout@"):
+                    checkout_count += 1
+                    self.assertEqual(step.get("with", {}).get("persist-credentials"), "false")
+                self.assertFalse(str(step.get("run", "")).strip().startswith(("./", "python ", "bash ")))
+        self.assertEqual(checkout_count, 1)
+
 
     def test_pull_request_secrets_are_rejected(self):
         findings = self.scan("""name: Unsafe
