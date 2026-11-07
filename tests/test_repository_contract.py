@@ -71,5 +71,37 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("PYTHON ?= python3", makefile)
 
 
+    def test_pr_controlled_reviewer_credentials_are_absent(self):
+        workflow_dir = ROOT / ".github" / "workflows"
+        self.assertFalse(
+            (workflow_dir / "automated-audit-review-approve.yml").exists(),
+            "PR-controlled reviewer workflow must remain removed",
+        )
+        self.assertFalse(
+            (ROOT / ".github" / "scripts" / "post-review-comment.sh").exists(),
+            "PAT-bearing PR-controlled helper must remain removed",
+        )
+
+        for pattern in ("*.yml", "*.yaml"):
+            for workflow in workflow_dir.glob(pattern):
+                content = workflow.read_text(encoding="utf-8")
+                self.assertNotIn(
+                    "POLIEDBC_PAT",
+                    content,
+                    f"reviewer PAT reference reintroduced in {workflow.relative_to(ROOT)}",
+                )
+                self.assertNotIn(
+                    "gh pr review --approve",
+                    content,
+                    f"automated approval command reintroduced in {workflow.relative_to(ROOT)}",
+                )
+
+        readiness = (workflow_dir / "auto-fix-open-prs.yml").read_text(encoding="utf-8")
+        self.assertIn("contents: read", readiness)
+        self.assertNotIn("pull-requests: write", readiness)
+        self.assertNotIn("issues: write", readiness)
+        self.assertNotIn("secrets.", readiness)
+
+
 if __name__ == "__main__":
     unittest.main()
