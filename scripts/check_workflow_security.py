@@ -1,72 +1,219 @@
 #!/usr/bin/env python3
-"""Fail-closed checks for GitHub Actions trust boundaries."""
+"""Fail-closed regression checks for GitHub Actions trust boundaries."""
 from __future__ import annotations
+
 import argparse
 import re
 from pathlib import Path
+from typing import Any
 
-ALLOWED_SECURITY_EVENT_WORKFLOWS = {"codeql.yml", "security.yml"}
+import yaml
+from yaml.constructor import ConstructorError
+from yaml.nodes import MappingNode
 
-def _event_block(source: str) -> str:
-    match = re.search(r"(?ms)^(?:on|['\"]on['\"]):[ \t]*(.*?)(?=^[A-Za-z_][A-Za-z0-9_-]*:[ \t]*|\Z)", source)
-    return match.group(1) if match else ""
+ALLOWED_SECURITY_EVENT_WORKFLOWS = {
+    ".github/workflows/codeql.yml",
+    ".github/workflows/security.yml",
+}
+SAFE_PERMISSION_VALUES = {"read", "none"}
+UNTRUSTED_REF_PATTERNS = (
+    r"refs/pull/",
+    r"github\.event\.pull_request",
+    r"github\.event\.inputs\.sha",
+    r"inputs\.sha",
+)
 
-def _has_event(block: str, event: str) -> bool:
-    return bool(re.search(rf"(?m)^\s+{re.escape(event)}\s*:", block) or re.search(rf"(?<![A-Za-z0-9_-]){re.escape(event)}(?![A-Za-z0-9_-])", block))
 
-def _has_unsafe_write_permissions(source: str, *, allow_security_events: bool) -> bool:
-    lines = source.splitlines()
-    for index, line in enumerate(lines):
-        match = re.match(r"^(?P<indent>[ \t]*)permissions:[ \t]*(?P<inline>.*)$", line)
-        if not match:
+class UniqueKeyLoader(yaml.BaseLoader):
+    """BaseLoader that preserves GitHub's 'on' key and rejects duplicate keys."""
+
+    def construct_mapping(self, node: MappingNode, deep: bool = False) -> dict[str, Any]:
+        mapping: dict[str, Any] = {}
+        for key_node, value_node in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                duplicate = key in mapping
+            except TypeError as exc:
+                raise ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    "unhashable mapping key",
+                    key_node.start_mark,
+                ) from exc
+            if duplicate:
+                raise ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"duplicate key {key!r}",
+                    key_node.start_mark,
+                )
+            mapping[key] = self.construct_object(value_node, deep=deep)
+        return mapping
+
+
+def _event_names(value: Any) -> set[str]:
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, list):
+        return {item for item in value if isinstance(item, str)}
+    if isinstance(value, dict):
+        return {key for key in value if isinstance(key, str)}
+    return set()
+
+
+def _permission_findings(
+    value: Any,
+    *,
+    relative: str,
+    location: str,
+) -> list[str]:
+    findings: list[str] = []
+    if value == "read-all":
+        return findings
+    if value == "write-all":
+        return [f"{relative}: {location} grants write-all"]
+    if not isinstance(value, dict):
+        return [f"{relative}: {location} must be an explicit permission map or read-all"]
+
+    for scope, level in value.items():
+        if not isinstance(scope, str) or not isinstance(level, str):
+            findings.append(f"{relative}: {location} contains a non-string permission")
             continue
-        indent = len(match.group("indent").expandtabs(8))
-        permission_lines = [match.group("inline")]
-        for following in lines[index + 1:]:
-            if not following.strip():
-                permission_lines.append("")
+        normalized = level.lower()
+        if normalized in SAFE_PERMISSION_VALUES:
+            continue
+        if normalized == "write" and (
+            scope == "security-events" and relative in ALLOWED_SECURITY_EVENT_WORKFLOWS
+        ):
+            continue
+        if normalized == "write":
+            findings.append(f"{relative}: {location} grants {scope}: write")
+        else:
+            findings.append(
+                f"{relative}: {location} has unsupported permission level for {scope}: {level}"
+            )
+    return findings
+
+
+def _checkout_findings(
+    document: dict[str, Any],
+    *,
+    relative: str,
+    has_pull_request: bool,
+) -> list[str]:
+    if not has_pull_request:
+        return []
+
+    findings: list[str] = []
+    jobs = document.get("jobs", {})
+    if not isinstance(jobs, dict):
+        return [f"{relative}: jobs must be a mapping"]
+
+    for job_name, job in jobs.items():
+        if not isinstance(job, dict):
+            findings.append(f"{relative}: job {job_name!r} must be a mapping")
+            continue
+        steps = job.get("steps", [])
+        if not isinstance(steps, list):
+            findings.append(f"{relative}: steps for job {job_name!r} must be a list")
+            continue
+        for index, step in enumerate(steps):
+            if not isinstance(step, dict):
                 continue
-            following_indent = len(following) - len(following.lstrip(" \t"))
-            if following_indent <= indent:
-                break
-            permission_lines.append(following.strip())
-        for item in permission_lines:
-            if re.search(r"\bwrite-all\b", item):
-                return True
-            permission = re.match(r"(?P<scope>[A-Za-z0-9_-]+):\s*write\b", item)
-            if permission and not (allow_security_events and permission.group("scope") == "security-events"):
-                return True
-    return False
+            uses = step.get("uses")
+            if not isinstance(uses, str) or not uses.lower().startswith("actions/checkout@"):
+                continue
+            options = step.get("with", {})
+            persisted = options.get("persist-credentials") if isinstance(options, dict) else None
+            if not isinstance(persisted, str) or persisted.lower() != "false":
+                findings.append(
+                    f"{relative}: checkout in job {job_name!r} step {index + 1} "
+                    "must set with.persist-credentials: false"
+                )
+    return findings
+
 
 def scan_workflows(root: Path) -> list[str]:
     workflow_dir = root / ".github" / "workflows"
     if not workflow_dir.is_dir():
         return [f"missing workflow directory: {workflow_dir}"]
-    files = sorted(path for path in workflow_dir.rglob("*") if path.is_file() and path.suffix.lower() in {".yml", ".yaml"})
+
+    files = sorted(
+        path
+        for path in workflow_dir.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".yml", ".yaml"}
+    )
     if not files:
         return [f"no workflow files found under: {workflow_dir}"]
+
     findings: list[str] = []
     for path in files:
-        source = path.read_text(encoding="utf-8")
         relative = path.relative_to(root).as_posix()
-        events = _event_block(source)
-        has_pull_request = _has_event(events, "pull_request")
-        has_pull_request_target = _has_event(events, "pull_request_target")
-        has_secrets = bool(re.search(r"\bsecrets(?:\.|\s*:)", source))
-        checks_out_code = bool(re.search(r"(?m)^\s+uses:\s*actions/checkout@", source))
-        persist_false = bool(re.search(r"(?m)^\s+persist-credentials:\s*false\s*$", source))
-        untrusted_ref = bool(re.search(r"refs/pull/|github\.event\.pull_request|github\.event\.inputs\.sha|inputs\.sha", source))
-        if has_pull_request_target:
+        source = path.read_text(encoding="utf-8")
+        try:
+            document = yaml.load(source, Loader=UniqueKeyLoader)
+        except yaml.YAMLError as exc:
+            findings.append(f"{relative}: invalid or ambiguous YAML: {exc.__class__.__name__}")
+            continue
+
+        if not isinstance(document, dict):
+            findings.append(f"{relative}: workflow document must be a mapping")
+            continue
+
+        events = _event_names(document.get("on"))
+        has_pull_request = "pull_request" in events
+        if "pull_request_target" in events:
             findings.append(f"{relative}: pull_request_target is forbidden")
-        if has_pull_request and has_secrets:
-            findings.append(f"{relative}: pull_request workflow must not reference secrets")
-        if has_pull_request and _has_unsafe_write_permissions(source, allow_security_events=path.name in ALLOWED_SECURITY_EVENT_WORKFLOWS):
-            findings.append(f"{relative}: unsafe write permission in pull_request workflow")
-        if has_pull_request and checks_out_code and not persist_false:
-            findings.append(f"{relative}: pull_request checkout must set persist-credentials: false")
+
+        if has_pull_request:
+            if "permissions" not in document:
+                findings.append(
+                    f"{relative}: pull_request workflow requires explicit top-level permissions"
+                )
+            else:
+                findings.extend(
+                    _permission_findings(
+                        document["permissions"],
+                        relative=relative,
+                        location="top-level permissions",
+                    )
+                )
+
+            has_secrets = bool(
+                re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source)
+            )
+            if has_secrets:
+                findings.append(f"{relative}: pull_request workflow must not reference secrets")
+
+            jobs = document.get("jobs", {})
+            if isinstance(jobs, dict):
+                for job_name, job in jobs.items():
+                    if isinstance(job, dict) and "permissions" in job:
+                        findings.extend(
+                            _permission_findings(
+                                job["permissions"],
+                                relative=relative,
+                                location=f"job {job_name!r} permissions",
+                            )
+                        )
+
+            findings.extend(
+                _checkout_findings(
+                    document,
+                    relative=relative,
+                    has_pull_request=has_pull_request,
+                )
+            )
+
+        has_secrets = bool(re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source))
+        untrusted_ref = any(re.search(pattern, source) for pattern in UNTRUSTED_REF_PATTERNS)
         if has_secrets and untrusted_ref:
-            findings.append(f"{relative}: secrets combined with PR-controlled/operator-supplied ref")
+            findings.append(
+                f"{relative}: secrets combined with PR-controlled/operator-supplied ref"
+            )
+
     return findings
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -77,8 +224,9 @@ def main() -> int:
         for finding in findings:
             print(f"::error::{finding}")
         return 1
-    print("Workflow trust-boundary checks passed.")
+    print("Workflow trust-boundary regression checks passed.")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
