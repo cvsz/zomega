@@ -18,9 +18,9 @@ ALLOWED_SECURITY_EVENT_WORKFLOWS = {
 SAFE_PERMISSION_VALUES = {"read", "none"}
 UNTRUSTED_REF_PATTERNS = (
     r"refs/pull/",
-    r"github\\.event\\.pull_request",
-    r"github\\.event\\.inputs\\.sha",
-    r"inputs\\.sha",
+    r"github\.event\.pull_request",
+    r"github\.event\.inputs\.sha",
+    r"inputs\.sha",
 )
 FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 FULL_SHA256_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -229,7 +229,7 @@ def scan_workflows(root: Path) -> list[str]:
                 )
 
             has_secrets = bool(
-                re.search(r"\\bsecrets(?:\\s*\\.|\\s*\\[|\\s*:)", source)
+                re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source)
             )
             if has_secrets:
                 findings.append(f"{relative}: pull_request workflow must not reference secrets")
@@ -254,7 +254,7 @@ def scan_workflows(root: Path) -> list[str]:
                 )
             )
 
-        has_secrets = bool(re.search(r"\\bsecrets(?:\\s*\\.|\\s*\\[|\\s*:)", source))
+        has_secrets = bool(re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source))
         untrusted_ref = any(re.search(pattern, source) for pattern in UNTRUSTED_REF_PATTERNS)
         if has_secrets and untrusted_ref:
             findings.append(
