@@ -36,7 +36,7 @@ permissions:
 jobs:
   test:
     steps:
-      - run: echo \${{ secrets.PRIVATE_TOKEN }}
+      - run: echo ${{ secrets.PRIVATE_TOKEN }}
 """)
         self.assertTrue(any("must not reference secrets" in item for item in findings))
 
@@ -116,10 +116,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: \${{ github.event.inputs.sha }}
+          ref: ${{ github.event.inputs.sha }}
       - run: ./scripts/from-the-pr.sh
         env:
-          GH_TOKEN: \${{ secrets.REVIEWER_PAT }}
+          GH_TOKEN: ${{ secrets.REVIEWER_PAT }}
 """)
         self.assertTrue(any("secrets combined" in item for item in findings))
 
@@ -134,7 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: \${{ github.event.inputs.pr_number && format('refs/pull/{0}/merge', github.event.inputs.pr_number) }}
+          ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/merge', github.event.inputs.pr_number) }}
           persist-credentials: false
       - run: git status --short
 """)
