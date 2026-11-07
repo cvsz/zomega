@@ -1,4 +1,4 @@
-name: Workflow Trust Boundary
+name: Workflow Trust Boundary Regression
 
 on:
   push:
@@ -13,7 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  trust-boundary:
+  regression:
+    name: Candidate-controlled regression check (not an admission control)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout without persisted credentials
@@ -21,8 +22,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Enforce workflow trust boundaries
-        run: python3 scripts/check_workflow_security.py
+      - name: Install pinned YAML parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+
+      - name: Run workflow trust-boundary regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::notice::This PR-triggered job executes candidate-controlled code. Treat it as a regression check only, not as a trusted admission control."
+          python3 scripts/check_workflow_security.py
 
       - name: Run workflow security regression tests
         run: python3 -m unittest discover -s tests -p 'test_workflow_security.py' -v
