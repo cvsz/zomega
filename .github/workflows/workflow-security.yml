@@ -1,0 +1,28 @@
+name: Workflow Trust Boundary
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-security-\${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trust-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Enforce workflow trust boundaries
+        run: python3 scripts/check_workflow_security.py
+
+      - name: Run workflow security regression tests
+        run: python3 -m unittest discover -s tests -p 'test_workflow_security.py' -v
