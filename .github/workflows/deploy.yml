@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Immutable image tag (commit SHA from Release workflow)"
+        description: "Full 40-character release commit SHA"
         required: true
         type: string
 
@@ -28,11 +28,28 @@ jobs:
           persist-credentials: false
       - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4 (upstream commit unsigned)
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4 (upstream commit unsigned)
-      - name: Verify image provenance
+      - name: Resolve immutable image digest and verify provenance
+        id: image
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE: ghcr.io/${{ github.repository }}:${{ inputs.image_tag }}
-        run: gh attestation verify "oci://$IMAGE" --repo "${{ github.repository }}"
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be a full lowercase 40-character commit SHA."
+            exit 64
+          fi
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          image="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          digest="$(docker buildx imagetools inspect "$image" --format '{{.Digest}}')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::Registry did not return a valid immutable image digest."
+            exit 65
+          fi
+          gh attestation verify "oci://${IMAGE_REPOSITORY}@${digest}" --repo "$GITHUB_REPOSITORY"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
       - name: Configure kubeconfig
         shell: bash
         env:
@@ -84,15 +101,17 @@ jobs:
             --from-literal=STRIPE_PRICE_CREDITS_5000="$STRIPE_PRICE_CREDITS_5000" \
             --from-literal=STRIPE_PRICE_CREDITS_20000="$STRIPE_PRICE_CREDITS_20000" \
             --dry-run=client -o yaml | kubectl apply -f -
-      - name: Deploy atomically
+      - name: Deploy atomically by verified digest
         shell: bash
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |
           set -euo pipefail
           helm upgrade --install zomega deploy/helm/zomega \
             --namespace zomega \
             --create-namespace \
             --set image.repository=ghcr.io/${{ github.repository }} \
-            --set image.tag=${{ inputs.image_tag }} \
+            --set image.digest="$IMAGE_DIGEST" \
             --atomic \
             --wait \
             --timeout 10m
