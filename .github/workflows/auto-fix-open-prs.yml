@@ -1,4 +1,4 @@
-name: Auto Fix Open PRs
+name: Repository Readiness Scan (read-only)
 
 on:
   schedule:
@@ -6,94 +6,55 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to fix (optional)'
+        description: PR number to scan (optional)
         required: false
         type: string
 
 concurrency:
-  group: auto-fix-${{ github.workflow }}-${{ github.ref }}
+  group: repository-readiness-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
-  validate-secrets:
-    name: Validate required secrets
+  audit:
+    name: Read-only repository checks
     runs-on: ubuntu-latest
-    outputs:
-      all-present: ${{ steps.check.outputs.all-present }}
     steps:
-      - name: Check required secrets
-        id: check
+      - name: Validate optional PR number
+        if: github.event_name == 'workflow_dispatch' && inputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
         run: |
-          MISSING=""
-          [ -z "${{ secrets.GPG_PASSPHRASE }}" ] && MISSING="$MISSING GPG_PASSPHRASE"
-          [ -z "${{ secrets.GPG_SIGNING_KEY }}" ] && MISSING="$MISSING GPG_SIGNING_KEY"
-          [ -z "${{ secrets.POLIEDBC_PAT }}" ] && MISSING="$MISSING POLIEDBC_PAT"
-          if [ -n "$MISSING" ]; then
-            echo "::error::Required secrets not set:$MISSING"
-            echo "all-present=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          echo "all-present=true" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
 
-  auto-fix-prs:
-    name: Auto-fix open PRs
-    needs: validate-secrets
-    if: needs.validate-secrets.outputs.all-present == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout base branch (read-only, no credentials)
+      - name: Checkout target revision without persisted credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
-          ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/merge', github.event.inputs.pr_number) || github.ref }}
+          ref: ${{ inputs.pr_number && format('refs/pull/{0}/merge', inputs.pr_number) || github.ref }}
 
-      - name: Configure git identity (local only, no signing)
+      - name: Reject tracked secret-bearing files
+        shell: bash
         run: |
-          git config user.name "cvsz"
-          git config user.email "cvsz@seaza.com"
-          git config commit.gpgsign false
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ruby python3-pip
-          pip3 install pyyaml
-
-      - name: Run auto-fix checks (read-only validation)
-        id: autofix
-        run: |
-          FIX_COUNT=0
-
-          # Check for secret-bearing files (read-only, no modification)
-          SECRET_FILES="$(git ls-files | grep -E '(^|/)(\\.env$|id_rsa|id_ed25519|.*\\.pem|.*\\.key)$' | grep -v '^\\.env\\.example$' || true)"
-          if [ -n "$SECRET_FILES" ]; then
-            echo "Found secret-bearing files: $SECRET_FILES"
-            SECRET_COUNT=$(echo "$SECRET_FILES" | grep -c .)
-            FIX_COUNT=$((FIX_COUNT + SECRET_COUNT))
+          set -euo pipefail
+          secret_files="$(git ls-files | grep -E '(^|/)(\.env$|id_rsa$|id_ed25519$|.*\.pem$|.*\.key$|credentials\.json$|service-account\.json$)' | grep -v '^\.env\.example$' || true)"
+          if [ -n "$secret_files" ]; then
+            printf '%s\n' "$secret_files"
+            exit 1
           fi
 
-          # Check for missing .gitignore (read-only)
-          if [ ! -f .gitignore ]; then
-            echo "Missing .gitignore"
-            FIX_COUNT=$((FIX_COUNT + 1))
-          fi
+      - name: Verify repository ignore baseline
+        run: test -f .gitignore
 
-          echo "FIX_COUNT=$FIX_COUNT" >> $GITHUB_ENV
-          echo "Issues found: $FIX_COUNT"
-
-      - name: Report results
+      - name: Record read-only result
         run: |
-          echo "Auto-fix completed. Issues found: ${FIX_COUNT:-0}"
-          if [ "${FIX_COUNT:-0}" -gt 0 ]; then
-            echo "## Auto-fix Results" >> $GITHUB_STEP_SUMMARY
-            echo "- Issues found: ${FIX_COUNT}" >> $GITHUB_STEP_SUMMARY
-            echo "- Repo: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
-            echo "PR-triggered signing and push are disabled. Use workflow_dispatch to apply fixes." >> $GITHUB_STEP_SUMMARY
-          fi
+          {
+            echo "## Repository readiness scan"
+            echo "- Revision: $(git rev-parse HEAD)"
+            echo "- Credentials: none"
+            echo "- GitHub write permissions: none"
+          } >> "$GITHUB_STEP_SUMMARY"
