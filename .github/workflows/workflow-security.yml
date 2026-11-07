@@ -1,0 +1,41 @@
+name: Workflow Trust Boundary Regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Candidate-controlled regression check (not an admission control)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+
+      - name: Install hash-locked YAML parser
+        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r .github/workflows/requirements-security.txt
+
+      - name: Run workflow trust-boundary regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::notice::This PR-triggered job executes candidate-controlled code. Treat it as a regression check only, not as a trusted admission control."
+          python scripts/check_workflow_security.py
+
+      - name: Run workflow security regression tests
+        run: python -m unittest discover -s tests -p 'test_workflow_security.py' -v

@@ -19,8 +19,10 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -67,6 +69,12 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements.txt
       - name: Install development checks
         run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+      - name: Install hash-locked workflow security parser
+        run: python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r .github/workflows/requirements-security.txt
+      - name: Enforce immutable workflow action references
+        run: python scripts/check_workflow_security.py
+      - name: Workflow trust-boundary regression tests
+        run: python -m unittest discover -s tests -p 'test_workflow_security.py' -v
       - name: Compile Python
         run: python -m compileall -q zomega tests migrations
       - name: Ruff correctness lint
@@ -127,8 +135,10 @@ jobs:
       STRIPE_PRICE_CREDITS_5000: price_ci_5000
       STRIPE_PRICE_CREDITS_20000: price_ci_20000
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip

@@ -8,9 +8,9 @@ security-sensitive behavior must fail closed and remain auditable.
 
 Do not disclose exploitable vulnerabilities in public issues, pull requests,
 discussions, or commit messages. Use GitHub's private vulnerability reporting or
-security advisory capability for [`cvsz/zomega`](https://github.com/cvsz/zomega/security)
-when enabled. Include affected versions or commits, reproduction details, impact,
-prerequisites, and suggested remediation when available.
+security advisory capability for cvsz/zomega
+(https://github.com/cvsz/zomega/security) when enabled. Include affected versions or
+commits, reproduction details, impact, prerequisites, and suggested remediation.
 
 ## Supported versions
 
@@ -29,6 +29,20 @@ receive security fixes only when explicitly maintained by the project.
 - Prefer fail-closed behavior for security-sensitive paths.
 - Review third-party actions and constrain them according to project policy.
 - Do not disable security gates merely to obtain a passing build.
+
+## GitHub Actions trust-boundary regression checks
+
+scripts/check_workflow_security.py parses workflow YAML structurally and checks for
+explicit pull-request permissions, unsafe top-level or job-level write grants,
+credential persistence on every checkout step, secret use in pull_request workflows,
+and duplicate or malformed YAML keys.
+
+The PR-triggered workflow that runs this scanner executes code from the candidate
+revision. It is therefore a regression check only, not a trusted admission control:
+a candidate can modify its own scanner or workflow. Required-check configuration,
+review policy, and any trusted policy enforcement must be administered and verified
+outside the candidate-controlled workflow. Never place reviewer PATs, signing
+credentials, or other privileged secrets in workflows that execute PR-controlled code.
 
 ## Incident handling
 
