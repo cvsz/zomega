@@ -18,10 +18,12 @@ ALLOWED_SECURITY_EVENT_WORKFLOWS = {
 SAFE_PERMISSION_VALUES = {"read", "none"}
 UNTRUSTED_REF_PATTERNS = (
     r"refs/pull/",
-    r"github\.event\.pull_request",
-    r"github\.event\.inputs\.sha",
-    r"inputs\.sha",
+    r"github\\.event\\.pull_request",
+    r"github\\.event\\.inputs\\.sha",
+    r"inputs\\.sha",
 )
+FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
+FULL_SHA256_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 class UniqueKeyLoader(yaml.BaseLoader):
@@ -95,6 +97,51 @@ def _permission_findings(
     return findings
 
 
+def _action_reference_findings(value: Any, *, relative: str, location: str) -> list[str]:
+    if not isinstance(value, str):
+        return [f"{relative}: {location} must be a string action reference"]
+
+    reference = value.strip()
+    if reference.startswith("./"):
+        return []
+
+    if reference.startswith("docker://"):
+        image_reference = reference[len("docker://") :]
+        digest = image_reference.rsplit("@", 1)[-1] if "@" in image_reference else ""
+        if not FULL_SHA256_DIGEST.fullmatch(digest):
+            return [f"{relative}: {location} must pin docker actions by sha256 digest"]
+        return []
+
+    if "@" not in reference:
+        return [f"{relative}: {location} must use a full 40-character commit SHA"]
+
+    action_name, revision = reference.rsplit("@", 1)
+    if not action_name or not FULL_COMMIT_SHA.fullmatch(revision):
+        return [f"{relative}: {location} must use a full 40-character commit SHA"]
+    return []
+
+
+def _workflow_action_findings(value: Any, *, relative: str, location: str = "workflow") -> list[str]:
+    findings: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            child_location = f"{location}.{key}"
+            if key == "uses":
+                findings.extend(
+                    _action_reference_findings(item, relative=relative, location=child_location)
+                )
+            else:
+                findings.extend(
+                    _workflow_action_findings(item, relative=relative, location=child_location)
+                )
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            findings.extend(
+                _workflow_action_findings(item, relative=relative, location=f"{location}[{index}]")
+            )
+    return findings
+
+
 def _checkout_findings(
     document: dict[str, Any],
     *,
@@ -160,6 +207,8 @@ def scan_workflows(root: Path) -> list[str]:
             findings.append(f"{relative}: workflow document must be a mapping")
             continue
 
+        findings.extend(_workflow_action_findings(document, relative=relative))
+
         events = _event_names(document.get("on"))
         has_pull_request = "pull_request" in events
         if "pull_request_target" in events:
@@ -180,7 +229,7 @@ def scan_workflows(root: Path) -> list[str]:
                 )
 
             has_secrets = bool(
-                re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source)
+                re.search(r"\\bsecrets(?:\\s*\\.|\\s*\\[|\\s*:)", source)
             )
             if has_secrets:
                 findings.append(f"{relative}: pull_request workflow must not reference secrets")
@@ -205,7 +254,7 @@ def scan_workflows(root: Path) -> list[str]:
                 )
             )
 
-        has_secrets = bool(re.search(r"\bsecrets(?:\s*\.|\s*\[|\s*:)", source))
+        has_secrets = bool(re.search(r"\\bsecrets(?:\\s*\\.|\\s*\\[|\\s*:)", source))
         untrusted_ref = any(re.search(pattern, source) for pattern in UNTRUSTED_REF_PATTERNS)
         if has_secrets and untrusted_ref:
             findings.append(
